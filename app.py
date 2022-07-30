@@ -1,5 +1,5 @@
 from flask import Flask
-from views.docker import docker_bp
+from views.docker import docker_bp, docker_connect
 from views.database import database_bp
 from views.login import login_bp
 from flask_socketio import SocketIO
@@ -34,21 +34,18 @@ def send_worker():
             socketio.emit("response", output_from_docker.decode())
 
 
-@socketio.on("connect")
-def init_terminal():
+@socketio.on("connectSignal")
+def init_terminal(name):
+    container_id = docker_connect(name)
     socketio.pty, tty = pty.openpty()
     socketio.terminal = subprocess.Popen(
-        ["docker", "exec", "-it", "6a8", "bash"], stdin=tty, stdout=tty, stderr=tty
+        ["docker", "exec", "-it", container_id, "/bin/bash"], stdin=tty, stdout=tty, stderr=tty
     )
-
     socketio.start_background_task(send_worker)
-
 
 @socketio.on("message")
 def handle_message(data):
-    print("received message: " + data)
     os.write(socketio.pty, data.encode())
-
 
 if __name__ == "__main__":
     socketio.run(app, port=5000, debug=True)
