@@ -8,10 +8,15 @@
 
 * 例如访问`localhost:5000/docker/`可以看到`docker`模块的API
 
-* Xterm.js Demo连接的Docker Container根据的是username
+* Xterm.js Demo连接的Docker Container根据的是username对应的container.id
   
-  * `["docker", "exec", "-it", username, "bash"]`(详见app.py)
+  * `["docker", "exec", "-it", containerid, "bash"]`(详见app.py)
   
   * username目前硬编码为前端\src\views\TerminalView.vue内的"Dave"。如果该用户名曾经访问过ternimal，则读取上次的container；否则创建一个新container且name设定为username
+* docker安装详见[菜鸟教程](https://www.runoob.com/docker/ubuntu-docker-install.html)
 
 如果安装了新的库记得更新`requirements.txt`，有什么进展也可以写在`README`里。
+
+
+
+7/30（徐浩博）：docker.py给出了在docker内执行某个bash操作的api，正确性有待测试
