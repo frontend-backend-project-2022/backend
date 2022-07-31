@@ -22,7 +22,6 @@ def docker_connect(name):
         socket._sock.sendall(b'mkdir /workspace')
     return container.id
 
-
 # exec_bash
 def docker_exec_bash(name, bash_str):
     try: #existing

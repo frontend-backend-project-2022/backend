@@ -1,6 +1,6 @@
 from flask import Flask
 from views.docker import docker_bp, docker_connect
-from views.database import database_bp
+from views.database import database_bp, db_init, db_insert, db_select, db_verify_pw
 from views.login import login_bp
 from flask_socketio import SocketIO
 
@@ -10,7 +10,7 @@ app.register_blueprint(docker_bp, url_prefix="/docker")
 app.register_blueprint(database_bp, url_prefix="/database")
 app.register_blueprint(login_bp, url_prefix="/login")
 
-app.config["SECRET_KEY"] = "secret!qwq"
+# app.config["SECRET_KEY"] = "secret!qwq"
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 
@@ -47,5 +47,12 @@ def init_terminal(name):
 def handle_message(data):
     os.write(socketio.pty, data.encode())
 
+
+# db_init()
+# db_insert('Alice','123456')
+# print(db_verify_pw('Alice', '123456'), db_verify_pw('Dave', '123456'), db_verify_pw('Alice', '12346'))
+
+
 if __name__ == "__main__":
     socketio.run(app, port=5000, debug=True)
+    
