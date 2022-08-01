@@ -2,3 +2,6 @@ flask
 flask-socketio
 simple-websocket
 docker
+flask-login
+flask-wtf
+wtforms
