@@ -23,7 +23,7 @@ def db_init():
             CREATE TABLE USERS 
             (
                 id INTEGER AUTO_INCREMENT, 
-                name TEXT NOT NULL, 
+                name TEXT NOT NULL UNIQUE, 
                 pwhash TEXT NOT NULL, 
                 container_id TEXT NOT NULL,
                 PRIMARY KEY (id)
@@ -63,10 +63,29 @@ def db_select(name): # return tuple: (name, pwhash, container_id)
             conn.close()
         return None
 
+
 def db_verify_pw(name, pw):
     try:
         pw = 'NAME:'+name+'|PW:'+pw
         pwhash = db_select(name)[1]
         return check_password_hash(pwhash, pw)
     except:
+        return False
+
+def db_delete(name, pw): # delete from db: True for successful, False for failed
+    try:
+        if db_verify_pw(name, pw):
+            conn = sql.connect('database.db')
+            conn.execute("DELETE FROM USERS WHERE name ='"+name+"';")
+            conn.commit()
+            print("Total number of rows deleted :%d"%conn.total_changes)
+            conn.close()
+            return True
+        else:
+            print("Failed to delete data from sqlite table", "name/pw wrong!")
+            return False
+    except sql.Error as error:
+        print("Failed to delete data from sqlite table", error)
+        if conn:
+            conn.close()
         return False
