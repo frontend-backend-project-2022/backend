@@ -1,0 +1,13 @@
+<!DOCTYPE HTML>
+<html>
+    <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <label>username</label>
+        <p><input type=text name=username>
+        <label>password</label>
+        <p><input type=password name=password>
+        <label>password_confirm</label>
+        <p><input type=password name=password_confirm>
+        <p><input type=submit value=register>
+    </form>
+</html>
