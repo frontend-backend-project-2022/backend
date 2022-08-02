@@ -1,7 +1,7 @@
-from database import db_insert, db_verify_pw, db_delete
+from .database import db_insert, db_verify_pw, db_delete
 from flask import Blueprint, session, Flask, request, redirect, url_for, render_template
 from flask_wtf import CSRFProtect
-from form import RegistrationForm, DeRegistrationForm, LoginForm
+from .form import RegistrationForm, DeRegistrationForm, LoginForm
 
 
 login_bp = Blueprint("login", __name__)
