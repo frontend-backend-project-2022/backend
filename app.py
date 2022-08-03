@@ -51,7 +51,7 @@ def handle_message(data):
     os.write(socketio.pty, data.encode())
 
 
-# db_init()
+db_init()
 # db_insert('Alice','123456')
 # print(db_verify_pw('Alice', '123456'), db_verify_pw('Dave', '123456'), db_verify_pw('Alice', '12346'))
 
