@@ -44,16 +44,16 @@
 
 7/30（徐浩博）：docker.py 给出了在 docker 内执行某个 bash 操作的 api，正确性有待测试
 
--login.py 实现了index，login，register，deregister四个页面的跳转，其中只简单实现了四个网页，并放在backend目录下的templates目录里。在login.py中使用rander_template函数渲染网页。
+- login.py 实现了index，login，register，deregister四个页面的跳转，其中只简单实现了四个网页，并放在backend目录下的templates目录里。在login.py中使用rander_template函数渲染网页。
 
-  -访问127.0.0.1:5000/login/ 若已登录，则显示index.html欢迎界面；若未登录，则重定向至登录界面127.0.0.1:5000/login/login/
+  - 访问127.0.0.1:5000/login/ 若已登录，则显示index.html欢迎界面；若未登录，则重定向至登录界面127.0.0.1:5000/login/login/
   
-  -用户需要先点击登录界面的register按钮注册，输入4-64位的用户名，8-64位的密码，并再次输入相同密码才能完成注册，注册成功后会自动跳转回登录界面
+  - 用户需要先点击登录界面的register按钮注册，输入4-64位的用户名，8-64位的密码，并再次输入相同密码才能完成注册，注册成功后会自动跳转回登录界面
   
-  -用户登录成功后会跳转到127.0.0.1:5000/login/ 登录成功后可以点击该页面的logout链接登出。
+  - 用户登录成功后会跳转到127.0.0.1:5000/login/ 登录成功后可以点击该页面的logout链接登出。
   
-  -用户可以点击login界面的deregister链接进入账号注销界面127.0.0.1:5000/login/deregister 正确输入用户名和密码并确认后账号将注销。
+  - 用户可以点击login界面的deregister链接进入账号注销界面127.0.0.1:5000/login/deregister 正确输入用户名和密码并确认后账号将注销。
   
-  -接口is_login()当用户已登录时返回True，否则返回False。
+  - 接口is_login()当用户已登录时返回True，否则返回False。
 
--form.py 规定了register、deregister、login的form格式，对用户名和密码的长度做了一定限制。之后也可以考虑引入正则表达式对其添加其他内容上的限制。
+- form.py 规定了register、deregister、login的form格式，对用户名和密码的长度做了一定限制。之后也可以考虑引入正则表达式对其添加其他内容上的限制。
