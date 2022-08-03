@@ -25,7 +25,6 @@ class DeRegistrationForm(FlaskForm):
 
 
 class LoginForm(FlaskForm):
-    # Login Validation in security.py
     username = StringField('username', validators=[DataRequired(message='用户名不能为空')])
     password = PasswordField('Password', validators=PASSWORD_VALIDATORS)
     submit = SubmitField('Log in')
