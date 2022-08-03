@@ -10,6 +10,11 @@ database_bp = Blueprint("database", __name__)
 @database_bp.route("/")
 def database_index():
     return "Database Index"
+    
+@database_bp.route("/test")
+def test():
+    return redirect(url_for('database.database_index'))    
+
 
 def db_init():
     

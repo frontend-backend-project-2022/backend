@@ -1,16 +1,19 @@
 from flask import Flask
+from flask_wtf import CSRFProtect
 from views.docker import docker_bp, docker_connect
 from views.database import database_bp, db_init, db_insert, db_select, db_verify_pw
 from views.login import login_bp
 from flask_socketio import SocketIO
 
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="templates")
 app.register_blueprint(docker_bp, url_prefix="/docker")
 app.register_blueprint(database_bp, url_prefix="/database")
 app.register_blueprint(login_bp, url_prefix="/login")
 
-# app.config["SECRET_KEY"] = "secret!qwq"
+app.config["SECRET_KEY"] = "secret!qwq"
+CSRFProtect(app)
+
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 
