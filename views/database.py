@@ -1,4 +1,4 @@
-from flask import Blueprint, Flask, render_template, request
+from flask import Blueprint, Flask, render_template, request, redirect
 import sqlite3 as sql
 from views.docker import docker_connect
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -10,14 +10,14 @@ database_bp = Blueprint("database", __name__)
 @database_bp.route("/")
 def database_index():
     return "Database Index"
-    
+
 @database_bp.route("/test")
 def test():
-    return redirect(url_for('database.database_index'))    
+    return redirect(url_for('database.database_index'))
 
 
 def db_init():
-    
+
     conn = sql.connect('database.db')
     print("Created / Opened database successfully")
     try:
@@ -25,11 +25,11 @@ def db_init():
          print("Table opened successfully")
     except:
         conn.execute('''
-            CREATE TABLE USERS 
+            CREATE TABLE USERS
             (
-                id INTEGER AUTO_INCREMENT, 
-                name TEXT NOT NULL UNIQUE, 
-                pwhash TEXT NOT NULL, 
+                id INTEGER AUTO_INCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                pwhash TEXT NOT NULL,
                 container_id TEXT NOT NULL,
                 PRIMARY KEY (id)
             );''')
@@ -52,7 +52,7 @@ def db_insert(name, pw):
         if conn:
             conn.close()
 
-def db_select(name): # return tuple: (name, pwhash, container_id) 
+def db_select(name): # return tuple: (name, pwhash, container_id)
     try:
         conn = sql.connect('database.db')
         cur = conn.execute("SELECT * FROM USERS WHERE name ='"+name+"';")
