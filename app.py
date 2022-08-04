@@ -14,8 +14,13 @@ app.register_blueprint(login_bp, url_prefix="/login")
 app.config["SECRET_KEY"] = "secret!qwq"
 CSRFProtect(app)
 
-socketio = SocketIO(app, cors_allowed_origins="*")
+# python language server: websocket
+from views.pyls import sock
+sock.init_app(app)
 
+
+# socketio
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 @app.route("/")
 def hello_world():
@@ -58,4 +63,3 @@ db_init()
 
 if __name__ == "__main__":
     socketio.run(app, port=5000, debug=True)
-    

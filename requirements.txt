@@ -5,3 +5,5 @@ docker
 flask-login
 flask-wtf
 wtforms
+flask-sock
+'python-language-server[all]'
