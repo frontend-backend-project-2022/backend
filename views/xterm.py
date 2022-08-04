@@ -1,6 +1,6 @@
 # xterm.js <=> socketio
 from flask_socketio import SocketIO
-from views.docker import docker_connect
+from views.docker import docker_connect,docker_exec_bash
 import pty
 import select
 import os
@@ -24,6 +24,9 @@ def init_terminal(name):
     socketio.terminal = subprocess.Popen(
         ["docker", "exec", "-it", container_id, "/bin/bash"], stdin=tty, stdout=tty, stderr=tty
     )
+    handle_message('cd workspace\n')
+    os.read(socketio.pty, 1024)
+    os.read(socketio.pty, 1024)
     socketio.start_background_task(send_worker)
 
 @socketio.on("message")
