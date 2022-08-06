@@ -7,7 +7,6 @@
 GET  
 ### 接口说明
 is_login用于判断当前登录状态，通过sessions中是否含有'username'项进行判断，若是则返回对应的username，若否返回False。
-# 
 ## login
 ### 接口地址
 127.0.0.1:5000/login/login/
@@ -23,7 +22,6 @@ login用于登录。
 &ensp;&ensp;&ensp;&ensp;之后后端会调用数据库查询操作对登录信息进行检测，若成功登录则重定向到index界面（127.0.0.1:5000/login/）  
 
 &ensp;&ensp;&ensp;&ensp;后续可以根据需要修改重定向后的地址及渲染模板html。
-# 
 ## logout
 ### 接口地址
 127.0.0.1:5000/login/logout/
@@ -31,7 +29,6 @@ login用于登录。
 GET
 ### 接口说明
 访问该接口将登出当前用户并重定向到登录界面。
-# 
 ## register
 ### 接口地址
 127.0.0.1:5000/login/register/
