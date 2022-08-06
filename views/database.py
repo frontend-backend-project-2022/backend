@@ -3,6 +3,7 @@ import sqlite3 as sql
 from views.docker import docker_connect,docker_rm
 from werkzeug.security import generate_password_hash, check_password_hash
 import time
+import json
 
 database_bp = Blueprint("database", __name__)
 DB_DIR = 'database.db'
@@ -156,7 +157,7 @@ def db_deleteuser(name, pw): # delete from db: True for successful, False for fa
             conn.close()
         return False
 
-@database_bp.route("/createProject", method=['POST'])
+@database_bp.route("/createProject", methods=['POST'])
 def db_createProject():
     name = session['username']
     data = json.loads(request.data)
