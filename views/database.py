@@ -40,7 +40,7 @@ def db_init():
 
 def db_insert(name, pw):
     pwhash= generate_password_hash('NAME:'+name+'|PW:'+pw,method='pbkdf2:sha256',salt_length=8)
-    container_id = docker_connect(name + "_python")
+    container_id = docker_connect(name)
     try:
         conn = sql.connect('database.db')
         conn.execute("INSERT INTO USERS (name, pwhash, container_id) \

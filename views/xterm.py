@@ -17,6 +17,7 @@ def send_worker():
             socketio.emit("response", output_from_docker.decode())
 
 
+import time
 @socketio.on("connectSignal")
 def init_terminal(name):
     container_id = docker_connect(name)
@@ -24,9 +25,6 @@ def init_terminal(name):
     socketio.terminal = subprocess.Popen(
         ["docker", "exec", "-it", container_id, "/bin/bash"], stdin=tty, stdout=tty, stderr=tty
     )
-    handle_message('cd workspace\n')
-    os.read(socketio.pty, 1024)
-    os.read(socketio.pty, 1024)
     socketio.start_background_task(send_worker)
 
 @socketio.on("message")

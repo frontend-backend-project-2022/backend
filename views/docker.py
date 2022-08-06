@@ -3,8 +3,7 @@ import docker
 from docker import errors
 
 docker_bp = Blueprint("docker", __name__)
-client = docker.from_env()
-containers = client.containers
+
 
 # use blueprint as app
 @docker_bp.route("/")
@@ -12,18 +11,21 @@ def docker_index():
     return "Docker Index"
 
 def docker_connect(name):
+    client = docker.from_env()
+    containers = client.containers
     try: #existing
         container = containers.get(name)
+        print(container.id)
         container.start()
         
     except errors.NotFound as e:
-        container = containers.run("ubuntu",name=name,tty=True, detach=True,command="/bin/bash")
-        _, socket = container.exec_run('sh', stdin=True, socket=True)
-        socket._sock.sendall(b'mkdir /workspace')
+        container = containers.run("ubuntu",name=name,tty=True, detach=True,command="/bin/bash", working_dir='/workspace')
     return container.id
 
 # exec_bash
 def docker_exec_bash(name, bash_str):
+    client = docker.from_env()
+    containers = client.containers
     try: #existing
         container = containers.get(name)
         container.start()
@@ -52,4 +54,4 @@ def docker_exec_bash(name, bash_str):
 
 # recursively print directorys
 def docker_getdir(name):
-    docker_exec_bash(name, 'cd /workspace\nls -R\n')
+    docker_exec_bash(name, 'ls -R\n')
