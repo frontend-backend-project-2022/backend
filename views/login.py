@@ -1,4 +1,4 @@
-from .database import db_insert, db_verify_pw, db_delete
+from .database import db_insertuser, db_verify_pw, db_deleteuser
 from flask import Blueprint, session, Flask, request, redirect, url_for, render_template
 from flask_wtf import CSRFProtect
 from .form import RegistrationForm, DeRegistrationForm, LoginForm
@@ -19,7 +19,6 @@ def index():
     if is_login():
         return render_template('index.html')
     return redirect(url_for('login.login'))
-
 
 @login_bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -48,7 +47,7 @@ def register():
     if not form.validate_on_submit():
         return render_template('register.html')
 
-    db_insert(form.username.data, form.password.data)
+    db_insertuser(form.username.data, form.password.data)
     return redirect(url_for('login.login'))
 
 
@@ -56,6 +55,6 @@ def register():
 def deregister():
     form = DeRegistrationForm()
     if form.validate_on_submit():
-        if db_delete(form.username.data, form.password.data):
+        if db_deleteuser(form.username.data, form.password.data):
             return redirect(url_for('login.login'))
     return render_template('deregister.html')

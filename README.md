@@ -32,13 +32,13 @@
 
   - API:
 
-    - db_insert(name, pw)可直接插入新 user（包括建立 container）
+    - db_insertuser(name, pw)可直接插入新 user（包括建立 container）
 
-    - db_select(name)通过 name 获取(name, pwhash, container_id) 三元组
+    - db_selectuser(name)通过 name 获取(name, pwhash, container_id) 三元组
 
     - db_verify_pw(name, pw)输入 name 和 password 返回二者是否对应(True/False)
 
-    - db_delete(name, pw)输入 name 和 password，如果二者匹配成功则删除，返回删除是否成功(True/False)
+    - db_deleteuser(name, pw)输入 name 和 password，如果二者匹配成功则删除，返回删除是否成功(True/False)
 
 如果安装了新的库记得更新`requirements.txt`，有什么进展也可以写在`README`里。
 

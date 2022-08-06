@@ -12,17 +12,29 @@ def docker_index():
     return "Docker Index"
 
 @docker_bp.route("/connect", methods=['GET'])
-def docker_connect(name):
+def docker_connect(name=None):
     client = docker.from_env()
     containers = client.containers
     try: #existing
         container = containers.get(name)
-        print(container.id)
-        container.start()
-        
-    except errors.NotFound as e:
+    except:
         container = containers.run("ubuntu",name=name,tty=True, detach=True,command="/bin/bash", working_dir='/workspace')
     return container.id
+
+def docker_rm(id):
+    client = docker.from_env()
+    containers = client.containers
+    try: #existing
+        container = containers.get(id)
+        container.kill()
+        container.remove()
+        return True
+    except docker.errors.NotFound as e:
+        print("docker rm error:",e)
+    except docker.errors.APIError as e:
+        print("docker rm error:",e)
+    return False
+
 
 # exec_bash
 

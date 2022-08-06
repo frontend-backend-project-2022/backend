@@ -1,7 +1,8 @@
 from flask import Blueprint, Flask, render_template, request, redirect, url_for
 import sqlite3 as sql
-from views.docker import docker_connect
+from views.docker import docker_connect,docker_rm
 from werkzeug.security import generate_password_hash, check_password_hash
+import time
 
 database_bp = Blueprint("database", __name__)
 
@@ -15,36 +16,45 @@ def database_index():
 def test():
     return redirect(url_for('database.database_index'))
 
-
+@database_bp.route("/init")
 def db_init():
-
     conn = sql.connect('database.db')
     print("Created / Opened database successfully")
     try:
-         conn.execute("SELECT * FROM " + 'USERS;') # judge connect or not
+         conn.execute("PRAGMA foreign_keys=ON;")
+         conn.execute("SELECT * FROM " + 'users;') # judge connect or not
          print("Table opened successfully")
     except:
         conn.execute('''
-            CREATE TABLE USERS
+            CREATE TABLE users
             (
                 id INTEGER AUTO_INCREMENT,
-                name TEXT NOT NULL UNIQUE,
+                username TEXT NOT NULL UNIQUE,
                 pwhash TEXT NOT NULL,
-                container_id TEXT NOT NULL,
-                PRIMARY KEY (id)
+                PRIMARY KEY(username)
             );''')
-        #create table USERS
+        conn.execute('''
+            CREATE TABLE containers
+            (
+                id INTEGER AUTO_INCREMENT,
+                containerid TEXT NOT NULL,
+                time DATETIME NOT NULL,
+                username TEXT,
+                FOREIGN KEY(username) REFERENCES users(username),
+                PRIMARY KEY(id)
+            );''')
+        #create table users
         print("Table created successfully")
     conn.close()
     return None
 
-def db_insert(name, pw):
+@database_bp.route("/register")
+def db_insertuser(name, pw):
     pwhash= generate_password_hash('NAME:'+name+'|PW:'+pw,method='pbkdf2:sha256',salt_length=8)
-    container_id = docker_connect(name)
     try:
         conn = sql.connect('database.db')
-        conn.execute("INSERT INTO USERS (name, pwhash, container_id) \
-            VALUES ('"+name+"','"+pwhash+"','"+container_id+"');")
+        conn.execute("INSERT INTO users (username, pwhash) \
+            VALUES ('"+name+"','"+pwhash+"');")
         conn.commit()
         conn.close()
     except sql.Error as error:
@@ -52,13 +62,29 @@ def db_insert(name, pw):
         if conn:
             conn.close()
 
-def db_select(name): # return tuple: (name, pwhash, container_id)
+@database_bp.route("/createproject")
+def db_insertcontainer(name):
+    container_id = docker_connect()
     try:
         conn = sql.connect('database.db')
-        cur = conn.execute("SELECT * FROM USERS WHERE name ='"+name+"';")
+        conn.execute("INSERT INTO containers (containerid, time, username) \
+            VALUES ('"+container_id+"','"+time.strftime('%Y-%m-%d %H:%M:%S')+"','"+name+"');")
+        conn.commit()
+        conn.close()
+        print("success")
+    except sql.Error as error:
+        print("Failed to insert data into sqlite table", error)
+        if conn:
+            conn.close()
+
+@database_bp.route("/selectuser")
+def db_selectuser(name): # return tuple: (name, pwhash)
+    try:
+        conn = sql.connect('database.db')
+        cur = conn.execute("SELECT username, pwhash FROM users WHERE username ='"+name+"';")
         res = None
         for i in cur:
-            res = (i[1], i[2], i[3])
+            res = (i[0], i[1])
         conn.commit()
         conn.close()
         return res
@@ -68,20 +94,44 @@ def db_select(name): # return tuple: (name, pwhash, container_id)
             conn.close()
         return None
 
+@database_bp.route("/selectproject")
+def db_selectcontainer(name): # return list: [containerid]
+    try:
+        conn = sql.connect('database.db')
+        cur = conn.execute("SELECT containerid FROM containers WHERE username ='"+name+"';")
+        res = []
+        for i in cur:
+            res.append(i[0])
+        conn.commit()
+        conn.close()
+        return res
+    except sql.Error as error:
+        print("Failed to select data from sqlite table", error)
+        if conn:
+            conn.close()
+        return None
 
+@database_bp.route("/verify")
 def db_verify_pw(name, pw):
     try:
         pw = 'NAME:'+name+'|PW:'+pw
-        pwhash = db_select(name)[1]
+        pwhash = db_selectuser(name)[1]
+        print("verify",db_selectuser(name)[1])
         return check_password_hash(pwhash, pw)
     except:
         return False
 
-def db_delete(name, pw): # delete from db: True for successful, False for failed
+@database_bp.route("/deregister")
+def db_deleteuser(name, pw): # delete from db: True for successful, False for failed
     try:
         if db_verify_pw(name, pw):
             conn = sql.connect('database.db')
-            conn.execute("DELETE FROM USERS WHERE name ='"+name+"';")
+            container_list = db_selectcontainer(name)
+            if container_list:
+                for i in container_list:
+                    docker_rm(i)
+            conn.execute("DELETE FROM containers WHERE username ='"+name+"';")
+            conn.execute("DELETE FROM users WHERE username ='"+name+"';")
             conn.commit()
             print("Total number of rows deleted :%d"%conn.total_changes)
             conn.close()
