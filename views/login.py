@@ -7,11 +7,12 @@ from .form import RegistrationForm, DeRegistrationForm, LoginForm
 login_bp = Blueprint("login", __name__)
 
 
+@login_bp.route('/is_login')
 def is_login():
     if 'username' in session:
         return f'{session["username"]}'
     else:
-        return None
+        return False
 
 
 @login_bp.route('/')
