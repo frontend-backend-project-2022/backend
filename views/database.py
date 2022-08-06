@@ -5,6 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import time
 
 database_bp = Blueprint("database", __name__)
+DB_DIR = 'database.db'
 
 
 # use blueprint as app
@@ -18,30 +19,29 @@ def test():
 
 @database_bp.route("/init")
 def db_init():
-    conn = sql.connect('database.db')
+    conn = sql.connect(DB_DIR)
+    conn.execute("PRAGMA foreign_keys=ON;")
     print("Created / Opened database successfully")
     try:
-         conn.execute("PRAGMA foreign_keys=ON;")
          conn.execute("SELECT * FROM " + 'users;') # judge connect or not
          print("Table opened successfully")
     except:
         conn.execute('''
             CREATE TABLE users
             (
-                id INTEGER AUTO_INCREMENT,
-                username TEXT NOT NULL UNIQUE,
-                pwhash TEXT NOT NULL,
-                PRIMARY KEY(username)
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL,
+                pwhash TEXT NOT NULL
             );''')
         conn.execute('''
             CREATE TABLE containers
             (
-                id INTEGER AUTO_INCREMENT,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 containerid TEXT NOT NULL,
+                projectname TEXT,
                 time DATETIME NOT NULL,
-                username TEXT,
-                FOREIGN KEY(username) REFERENCES users(username),
-                PRIMARY KEY(id)
+                userid INTEGE,
+                FOREIGN KEY(userid) REFERENCES users(id) on delete cascade
             );''')
         #create table users
         print("Table created successfully")
@@ -52,7 +52,9 @@ def db_init():
 def db_insertuser(name, pw):
     pwhash= generate_password_hash('NAME:'+name+'|PW:'+pw,method='pbkdf2:sha256',salt_length=8)
     try:
-        conn = sql.connect('database.db')
+        conn = sql.connect(DB_DIR)
+        
+        conn.execute("PRAGMA foreign_keys=ON;")
         conn.execute("INSERT INTO users (username, pwhash) \
             VALUES ('"+name+"','"+pwhash+"');")
         conn.commit()
@@ -63,12 +65,14 @@ def db_insertuser(name, pw):
             conn.close()
 
 @database_bp.route("/createproject")
-def db_insertcontainer(name):
+def db_insertcontainer(name, projectname='DEFAULT'):
     container_id = docker_connect()
     try:
-        conn = sql.connect('database.db')
-        conn.execute("INSERT INTO containers (containerid, time, username) \
-            VALUES ('"+container_id+"','"+time.strftime('%Y-%m-%d %H:%M:%S')+"','"+name+"');")
+        userid = db_selectuser(name)[0]
+        conn = sql.connect(DB_DIR)
+        conn.execute("PRAGMA foreign_keys=ON;")
+        conn.execute("INSERT INTO containers (containerid, projectname, time, userid) \
+            VALUES ('"+container_id+"','"+projectname+"','"+time.strftime('%Y-%m-%d %H:%M:%S')+"',"+str(userid)+");")
         conn.commit()
         conn.close()
         print("success")
@@ -78,10 +82,11 @@ def db_insertcontainer(name):
             conn.close()
 
 @database_bp.route("/selectuser")
-def db_selectuser(name): # return tuple: (name, pwhash)
+def db_selectuser(name): # return tuple: (userid, pwhash)
     try:
-        conn = sql.connect('database.db')
-        cur = conn.execute("SELECT username, pwhash FROM users WHERE username ='"+name+"';")
+        conn = sql.connect(DB_DIR)
+        conn.execute("PRAGMA foreign_keys=ON;")
+        cur = conn.execute("SELECT id, pwhash FROM users WHERE username ='"+name+"';")
         res = None
         for i in cur:
             res = (i[0], i[1])
@@ -95,13 +100,15 @@ def db_selectuser(name): # return tuple: (name, pwhash)
         return None
 
 @database_bp.route("/selectproject")
-def db_selectcontainer(name): # return list: [containerid]
+def db_selectcontainer(name): # return list: [(projectname, containerid)]
     try:
-        conn = sql.connect('database.db')
-        cur = conn.execute("SELECT containerid FROM containers WHERE username ='"+name+"';")
+        userid = db_selectuser(name)[0]
+        conn = sql.connect(DB_DIR)
+        conn.execute("PRAGMA foreign_keys=ON;")
+        cur = conn.execute("SELECT projectname, containerid FROM containers WHERE userid ="+str(userid)+";")
         res = []
         for i in cur:
-            res.append(i[0])
+            res.append((i[0],i[1]))
         conn.commit()
         conn.close()
         return res
@@ -110,13 +117,16 @@ def db_selectcontainer(name): # return list: [containerid]
         if conn:
             conn.close()
         return None
+    except:
+        print('Failed to select data from sqlite table')
+        return None
 
 @database_bp.route("/verify")
 def db_verify_pw(name, pw):
     try:
         pw = 'NAME:'+name+'|PW:'+pw
         pwhash = db_selectuser(name)[1]
-        print("verify",db_selectuser(name)[1])
+        # print("verify",db_selectuser(name)[1])
         return check_password_hash(pwhash, pw)
     except:
         return False
@@ -125,13 +135,13 @@ def db_verify_pw(name, pw):
 def db_deleteuser(name, pw): # delete from db: True for successful, False for failed
     try:
         if db_verify_pw(name, pw):
-            conn = sql.connect('database.db')
             container_list = db_selectcontainer(name)
+            conn = sql.connect(DB_DIR)
+            conn.execute("PRAGMA foreign_keys=ON;")
             if container_list:
                 for i in container_list:
-                    docker_rm(i)
-            conn.execute("DELETE FROM containers WHERE username ='"+name+"';")
-            conn.execute("DELETE FROM users WHERE username ='"+name+"';")
+                    docker_rm(i[1])
+            conn.execute("DELETE FROM users WHERE username ='"+name+"';") # delete cascade
             conn.commit()
             print("Total number of rows deleted :%d"%conn.total_changes)
             conn.close()

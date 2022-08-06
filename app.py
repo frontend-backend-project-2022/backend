@@ -29,14 +29,16 @@ def hello_world():
 
 
 db_init()
-# _ = docker_connect('Alice')
-# print(docker_getdir('Alice'))
-# db_insertuser('Alice','123456')
-# db_insertcontainer('Alice')
+_ = docker_connect('Alice')
+print(docker_getdir('Alice'))
+
+db_insertuser('Alice','123456')
+db_insertcontainer('Alice')
+print(db_selectuser('Alice'))
 # print(db_verify_pw('Alice', '123456'), db_verify_pw('Dave', '123456'), db_verify_pw('Alice', '12346'))
 # db_deleteuser('Alice','123')
-# # db_insertcontainer('Alice')
-# db_deleteuser('Alice','123456')
+# db_insertcontainer('Alice')
+db_deleteuser('Alice','123456')
 # assert db_selectuser('Alice') == None
 # db_insertcontainer('Alice')
 
