@@ -1,4 +1,4 @@
-from flask import Blueprint, Flask, render_template, request, redirect, url_for, session
+from flask import Blueprint, Flask, render_template, request, redirect, url_for, session, jsonify
 import sqlite3 as sql
 from views.docker import docker_connect,docker_rm
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -194,15 +194,13 @@ def db_getProject(container_id):
         cur = conn.execute("SELECT projectname, containerid, language, version, time FROM containers WHERE containerid ='"+container_id+"';")
         res = dict()
         for i in cur:
-            temp = dict()
-            temp['projectname'] = i[0]
-            temp['containerid'] = i[1]
-            temp['language'] = i[2]
-            temp['version'] = i[3]
-            temp['time'] = i[4]
-            return_list.append(temp)
+            res['projectname'] = i[0]
+            res['containerid'] = i[1]
+            res['language'] = i[2]
+            res['version'] = i[3]
+            res['time'] = i[4]
         conn.close()
-        return jsonify, 200
+        return jsonify(res), 200
     except:
         print('Failed to select data from sqlite table')
         return 500
