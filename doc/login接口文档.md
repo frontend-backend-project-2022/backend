@@ -42,7 +42,7 @@ GET，POST
 &ensp;&ensp;&ensp;&ensp;当以POST方式请求时，请求体里需要带上一个由username参数和password参数和password_confirm参数以及值为"{{ csrf_token() }}"的csrf_token组成的form  
 
 &ensp;&ensp;&ensp;&ensp;之后后端会对参数合法性进行验证，若通过，则将用户名及密码保存到数据库，并重定向回登录界面。
-### deregister
+## deregister
 ### 接口地址
 127.0.0.1:5000/login/deregister/
 ### Method
