@@ -1,4 +1,4 @@
-from flask import Blueprint
+from flask import Blueprint, jsonify, request
 import docker
 from docker import errors
 import json
@@ -68,9 +68,9 @@ def docker_exec_bash(name, bash_str):
         pass
 
 # recursively print directorys
-@docker_bp.route("/getdir")
-def docker_getdir(name):
-    res = docker_exec_bash(name, 'ls -RF\n')
+@docker_bp.route("/getdir/<container_id>", methods=['GET'])
+def docker_getdir(container_id):
+    res = docker_exec_bash(container_id, 'ls -RF\n')
     dir_list = res.split('\n\n')
     dic_temp = {}
     dic=[]
@@ -94,4 +94,4 @@ def docker_getdir(name):
         else:
             dic2[directory] = dic2.get(directory, dict())
             dic2[directory][content] = dic2[directory + '/' + content]
-    return json.dumps(dic2['.'])
+    return jsonify(dic2['.']), 200
