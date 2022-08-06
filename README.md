@@ -16,29 +16,42 @@
 
 - docker 安装详见[菜鸟教程](https://www.runoob.com/docker/ubuntu-docker-install.html)
 
-- database 采用 sqlite3，用户表名称为 USER，形式如下:
+- database 采用 sqlite3，用户表名称为users，容器表名称为containers(每个容器对应一个项目，一个用户可拥有多个项目)，形式如下:
 
   - ```sqlite
-    USER(
-        id INTEGER AUTO_INCREMENT,
-        name TEXT NOT NULL UNIQUE,
-        pwhash TEXT NOT NULL,
-        container_id TEXT NOT NULL,
-        PRIMARY KEY (id)
-    )
+    TABLE users
+            (
+                id INTEGER AUTO_INCREMENT,
+                username TEXT NOT NULL UNIQUE,
+                pwhash TEXT NOT NULL,
+                PRIMARY KEY(username)
+            );
+    TABLE containers
+            (
+                id INTEGER AUTO_INCREMENT,
+                containerid TEXT NOT NULL,
+                time DATETIME NOT NULL,
+                username TEXT,
+                FOREIGN KEY(username) REFERENCES users(username),
+                PRIMARY KEY(id)
+            );
     ```
 
   - 注：pwhash 是 password 经过 sha256 加盐 hash 得到的
 
   - API:
 
-    - db_insertuser(name, pw)可直接插入新 user（包括建立 container）
+    - db_insertuser(name, pw)可直接插入新user
 
-    - db_selectuser(name)通过 name 获取(name, pwhash, container_id) 三元组
+    - db_insertcontainer(name)在name名下创建一个新container（包括建立 container）
+
+    - db_selectuser(name)是针对users表通过 name 获取(name, pwhash)二元组，不存在返回None
+    
+    - db_selectcontainer(name)返回name名下所有container对应的id的列表，不存在该用户返回None
 
     - db_verify_pw(name, pw)输入 name 和 password 返回二者是否对应(True/False)
 
-    - db_deleteuser(name, pw)输入 name 和 password，如果二者匹配成功则删除，返回删除是否成功(True/False)
+    - db_deleteuser(name, pw)输入 name 和 password，如果二者匹配成功则删除，返回删除是否成功(True/False)（包括删除所有的container）
 
 如果安装了新的库记得更新`requirements.txt`，有什么进展也可以写在`README`里。
 
