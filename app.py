@@ -1,5 +1,4 @@
 from flask import Flask
-from flask_wtf import CSRFProtect
 from views.docker import *
 from views.database import *
 from views.login import login_bp
@@ -12,7 +11,7 @@ app.register_blueprint(database_bp, url_prefix="/database")
 app.register_blueprint(login_bp, url_prefix="/login")
 
 app.config["SECRET_KEY"] = "secret!qwq"
-CSRFProtect(app)
+# CSRFProtect(app)
 
 # python language server: websocket
 from views.pyls import sock
