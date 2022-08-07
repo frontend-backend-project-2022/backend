@@ -1,4 +1,5 @@
 from flask import Flask
+from flask_cors import CORS
 from views.docker import docker_bp, docker_connect, docker_getdir
 from views.database import database_bp, db_init, db_insertuser, db_selectuser, db_verify_pw, db_insertcontainer, db_deleteuser
 from views.login import login_bp
@@ -12,6 +13,7 @@ app.register_blueprint(login_bp, url_prefix="/login")
 
 app.config["SECRET_KEY"] = "secret!qwq"
 # CSRFProtect(app)
+CORS(app, supports_credentials=True)
 
 # python language server: websocket
 from views.pyls import sock

@@ -8,3 +8,4 @@ wtforms
 flask-sock
 python-language-server[all]
 pytest
+flask-cors
