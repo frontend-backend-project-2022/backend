@@ -3,6 +3,11 @@ import docker
 from docker import errors
 import json
 
+import tarfile
+import time
+from io import BytesIO, StringIO
+import os
+
 docker_bp = Blueprint("docker", __name__)
 
 
@@ -87,6 +92,7 @@ def docker_getdir(container_id):
                 dic.append((dir_part, content[:-1]))
     
     dic.sort(key=lambda elem : elem[0].count('/'), reverse= True)
+    print(dic)
     dic2 = dict()
     for directory, content in dic:
         if content == '':
@@ -94,4 +100,38 @@ def docker_getdir(container_id):
         else:
             dic2[directory] = dic2.get(directory, dict())
             dic2[directory][content] = dic2[directory + '/' + content]
+    print(json.dumps(dic2['.']))
     return jsonify(dic2['.']), 200
+
+def put_test():
+    client = docker.from_env()
+    containers = client.containers
+    container = containers.run("ubuntu",tty=True, detach=True,command="/bin/bash", working_dir='/workspace')
+    print(container)
+    with tarfile.open("vpc-example.tar", 'w') as tar:
+        try:
+                tar.add('test.txt')
+        finally:
+                tar.close()
+    with open('vpc-example.tar', 'rb') as fd:
+            ok = container.put_archive(path="/workspace", data=fd)
+            if not ok:
+                raise Exception('Put file failed')
+            else:
+                print("no exception")
+                os.remove('vpc-example.tar')
+    return container.id
+
+def get_test(id):
+    client = docker.from_env()
+    containers = client.containers
+    container = containers.get(id)
+    strm, stat = container.get_archive('/workspace/test.txt')
+    file_obj = BytesIO()
+    for i in strm:
+        file_obj.write(i)
+    file_obj.seek(0)
+    tar = tarfile.open(mode='r', fileobj=file_obj)
+    text = tar.extractfile('test.txt')
+    q = text.read()
+    print(q)
