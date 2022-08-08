@@ -68,7 +68,7 @@ def docker_exec_bash(name, cmd):
         if res.exit_code == 0:
             return res.output.decode()
         else:
-            print("exec bash error:",e)
+            print("exec bash error")
             return None
     except Exception as e:
         print("exec bash error:",e)
@@ -111,7 +111,7 @@ def docker_getdir(containerid):
         dir_part, content_part = item.strip().split(':')
         content_list = content_part.strip().split('\n')
         dic_temp[dir_part] = content_list
-    
+
     for dir_part, content_part in dic_temp.items():
         for content in content_part:
             if len(content) > 1 and content[-1] != '/':
@@ -121,6 +121,7 @@ def docker_getdir(containerid):
                 dic.append((dir_part, content[:-1]))
     
     dic.sort(key=lambda elem : elem[0].count('/'), reverse= True)
+    print(dic)
     dic2 = dict()
     for directory, content in dic:
         if content == '':
