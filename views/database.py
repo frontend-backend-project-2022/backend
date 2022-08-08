@@ -12,6 +12,7 @@ DB_DIR = 'database.db'
 # use blueprint as app
 @database_bp.route("/")
 def database_index():
+    sql.connect(DB_DIR)
     return "Database Index"
 
 @database_bp.route("/test")
@@ -157,7 +158,7 @@ def db_deleteuser(name, pw): # delete from db: True for successful, False for fa
             conn.close()
         return False
 
-@database_bp.route("/createProject", methods=['POST'])
+@database_bp.route("/createProject/", methods=['POST'])
 def db_createProject():
     name = session['username']
     data = json.loads(request.data)
@@ -166,10 +167,10 @@ def db_createProject():
     version = data['version']
     res = db_insertcontainer(name, projectname, language, version)
     if res:
-        return res, 200
+        return str(res), 200
     return 500
 
-@database_bp.route("/getAllProjects", methods=['GET'])
+@database_bp.route("/getAllProjects/", methods=['GET'])
 def db_getAllProjects():
     name = session['username']
     result = db_selectcontainer(name)
@@ -186,7 +187,7 @@ def db_getAllProjects():
         return jsonify(return_list), 200
     return 500
 
-@database_bp.route("/getProject/<container_id>", methods=['GET'])
+@database_bp.route("/getProject/<container_id>/", methods=['GET'])
 def db_getProject(container_id):
     try:
         conn = sql.connect(DB_DIR)
@@ -205,7 +206,7 @@ def db_getProject(container_id):
         print('Failed to select data from sqlite table')
         return 500
 
-@database_bp.route("/deleteProject/<container_id>", methods=['DELETE'])
+@database_bp.route("/deleteProject/<container_id>/", methods=['DELETE'])
 def db_deleteProject(container_id):
     try:
         conn = sql.connect(DB_DIR)
@@ -219,7 +220,7 @@ def db_deleteProject(container_id):
         print('Failed to select data from sqlite table')
         return 500
 
-@database_bp.route("/updateProject", methods=['POST'])
+@database_bp.route("/updateProject/", methods=['POST'])
 def db_updateProject(container_id):
     try:
         data = json.loads(request.data)

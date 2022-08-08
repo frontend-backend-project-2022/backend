@@ -28,10 +28,15 @@ socketio.init_app(app)
 def hello_world():
     return "<p>Hello, World!</p>"
 
-
 db_init()
+id = docker_connect()
+docker_exec_bash(id,"mkdir dir1 && mkdir dir2 && touch file2 && cd dir1 && touch file1 && mkdir dir3")
+docker_getdir(id)
+docker_rm(id)
 id = put_test()
 get_test(id)
+
+docker_rm(id)
 
 if __name__ == "__main__":
     app.run(debug=True)
