@@ -19,7 +19,7 @@ def database_index():
 def test():
     return redirect(url_for('database.database_index'))
 
-@database_bp.route("/init")
+@database_bp.route("/init/", methods=['POST'])
 def db_init():
     conn = sql.connect(DB_DIR)
     conn.execute("PRAGMA foreign_keys=ON;")
@@ -52,7 +52,6 @@ def db_init():
     conn.close()
     return None
 
-@database_bp.route("/register")
 def db_insertuser(name, pw):
     pwhash= generate_password_hash('NAME:'+name+'|PW:'+pw,method='pbkdf2:sha256',salt_length=8)
     try:
@@ -87,7 +86,6 @@ def db_insertcontainer(name, projectname='',language='',version=0):
             conn.close()
         return None
 
-@database_bp.route("/selectuser")
 def db_selectuser(name): # return tuple: (userid, pwhash)
     try:
         conn = sql.connect(DB_DIR)

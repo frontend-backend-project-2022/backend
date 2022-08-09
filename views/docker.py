@@ -7,8 +7,12 @@ import tarfile
 import time
 from io import BytesIO, StringIO
 import os
+import uuid
+import shutil
 
 docker_bp = Blueprint("docker", __name__)
+
+TEMPFILES_DIR = 'tempfiles'
 
 
 # use blueprint as app
@@ -166,3 +170,37 @@ def get_test(id):
     text = tar.extractfile('test.txt')
     q = text.read()
     print(q)
+
+@docker_bp.route("/uploadFile/", methods=['POST'])
+def docker_upload_file():
+    # check if the post request has the file part
+    if 'file' not in request.files:
+        return 'No file part', 400
+    try:
+        file = request.files['file']
+        # print(file.filename)
+        form = request.form.to_dict()
+        container_dir = form['dir']
+        container_id = form['containerid']
+        filedir = os.path.join(TEMPFILES_DIR, str(uuid.uuid4()))
+        os.makedirs(filedir)
+        file.save(os.path.join(filedir, file.filename))
+        with tarfile.open(os.path.join(filedir, file.filename+'.tar'), 'w') as tar:
+            try:
+                tar.add(os.path.join(filedir, file.filename),arcname=os.path.join(container_dir, file.filename))
+            finally:
+                tar.close()
+
+        client = docker.from_env()
+        container = client.containers.get(container_id)
+        with open(os.path.join(filedir, file.filename+'.tar'), 'rb') as fd:
+            ok = container.put_archive(path=os.path.join("/workspace"), data=fd)
+            if not ok:
+                raise Exception('Put file failed')
+            else:
+                print("no exception")
+                shutil.rmtree(filedir)
+        return "success", 200
+    except Exception as e:
+        return str(e), 500
+        

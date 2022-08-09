@@ -1,6 +1,7 @@
 import pytest
 from flask import session
 from views.docker import docker_rm
+from io import BytesIO, StringIO
 
 
 def test_index(client):
@@ -15,6 +16,7 @@ def test_login(client):
         "password": "123456"
     }
     with client:
+        client.post('/login/init/')
         client.post('/login/register/', json=user_data)
         client.post('/login/', json=user_data)
         assert "username" in session
@@ -32,6 +34,7 @@ def test_bash(client, auth):
     }
     with client:
         auth.login()
+        client.post('/login/init/')
         response = client.post('/database/createProject/', json = project_data)
         assert response.data
         containerid = response.data.decode()
@@ -41,7 +44,6 @@ def test_bash(client, auth):
         client.post('/docker/bash/', json = bash_post)
 
         response = client.get('/docker/getdir/%s' % containerid)
-        print(response.data.decode())
         assert '{"dir1": {"dir3": {}, "file1": ""}, "dir2": {}, "file2": ""}' == response.data.decode()
         docker_rm(containerid)
 
@@ -62,13 +64,14 @@ def test_project(client, auth):
     }
     with client:
         auth.login()
+        client.post('/login/init/')
         containerid = client.post(host + 'createProject/', json = project_data).data.decode()
         containerid2 = client.post(host + 'createProject/', json = project_data2).data.decode()
         assert containerid
         assert containerid2
         project_list = client.get(host + 'getAllProjects/').json
         assert len(project_list) == 2
-        
+
         update_data['containerid'] = project_list[1]['containerid']
         client.post(host + 'updateProject/', json = update_data)
         project_list = client.get(host + 'getAllProjects/').json
@@ -83,4 +86,31 @@ def test_project(client, auth):
         assert project_list[0]['language'] == 'python'
         client.delete(host + 'deleteProject/'+ project_list[0]['containerid'])
 
+def test_file(client, auth):
+    project_data = {
+        "projectname": "PROJECT",
+        "language": "python",
+        "version": "10",
+    }
+    tempfile = BytesIO(b"post-data")
+    tempfile.name = '123.txt'
+    put_data = {
+        'file':tempfile,
+        'dir':'./hsu1023',
+    }
+    with client:
+        auth.login()
+        client.post('/login/init/')
+        containerid = client.post('/database/createProject/', json = project_data).data.decode()
+        put_data['containerid'] = containerid
+        print(containerid)
+        
+        response = client.post('/docker/uploadFile/', data=put_data,
+                      content_type='multipart/form-data')
+        assert '200' in str(response)
 
+        response = client.get('/docker/getdir/%s' % containerid)
+        client.delete('/database/deleteProject/'+ containerid)
+        print(response.data.decode())
+        assert '{"hsu1023": {"123.txt": ""}}' == response.data.decode()
+        
