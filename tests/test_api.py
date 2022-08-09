@@ -85,7 +85,7 @@ def test_project(client, auth):
         assert len(project_list) == 1
         assert project_list[0]['language'] == 'python'
         client.delete(host + 'deleteProject/'+ project_list[0]['containerid'])
-<<<<<<< HEAD
+
 
 def test_file(client, auth):
     project_data = {
