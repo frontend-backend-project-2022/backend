@@ -21,7 +21,7 @@ def test_login(client):
         client.post('/login/', json=user_data)
         assert "username" in session
         response = client.get('/login/is_logged_in/')
-        assert f"User {user_data['username']} logged in." in response.data.decode()
+        assert user_data['username'] in response.data.decode()
 
 def test_bash(client, auth):
     project_data = {
@@ -76,7 +76,7 @@ def test_project(client, auth):
         client.post(host + 'updateProject/', json = update_data)
         project_list = client.get(host + 'getAllProjects/').json
         assert project_list[1]['projectname'] == 'NewProject'
-        
+
         project = client.get(host + 'getProject/'+project_list[1]['containerid']).json
         assert project['version'] == '17'
 
@@ -85,6 +85,7 @@ def test_project(client, auth):
         assert len(project_list) == 1
         assert project_list[0]['language'] == 'python'
         client.delete(host + 'deleteProject/'+ project_list[0]['containerid'])
+<<<<<<< HEAD
 
 def test_file(client, auth):
     project_data = {
@@ -113,4 +114,4 @@ def test_file(client, auth):
         client.delete('/database/deleteProject/'+ containerid)
         print(response.data.decode())
         assert '{"hsu1023": {"123.txt": ""}}' == response.data.decode()
-        
+    

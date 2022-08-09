@@ -56,7 +56,7 @@ def db_insertuser(name, pw):
     pwhash= generate_password_hash('NAME:'+name+'|PW:'+pw,method='pbkdf2:sha256',salt_length=8)
     try:
         conn = sql.connect(DB_DIR)
-        
+
         conn.execute("PRAGMA foreign_keys=ON;")
         conn.execute("INSERT INTO users (username, pwhash) \
             VALUES ('"+name+"','"+pwhash+"');")
@@ -76,7 +76,7 @@ def db_insertcontainer(name, projectname='',language='',version=0):
         conn = sql.connect(DB_DIR)
         conn.execute("PRAGMA foreign_keys=ON;")
         conn.execute("INSERT INTO containers (containerid, projectname, time, language, version, userid) \
-            VALUES ('"+container_id+"','"+projectname+"','"+time.strftime('%Y-%m-%d %H:%M:%S')+"','"+language+"',"+str(version)+","+str(userid)+");")
+            VALUES ('"+container_id+"','"+projectname+"','"+time.strftime('%Y-%m-%d %H:%M:%S')+"','"+language+"','"+str(version)+"','"+str(userid)+"');")
         conn.commit()
         conn.close()
         return container_id
