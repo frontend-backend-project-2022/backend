@@ -9,3 +9,4 @@ flask-sock
 python-language-server[all]
 pytest
 flask-cors
+pytest-cov
