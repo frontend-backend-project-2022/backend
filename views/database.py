@@ -43,7 +43,7 @@ def db_init():
                 projectname TEXT,
                 time DATETIME NOT NULL,
                 language TEXT NOT NULL,
-                version INTEGER NOT NULL,
+                version TEXT NOT NULL,
                 userid INTEGE,
                 FOREIGN KEY(userid) REFERENCES users(id) on delete cascade
             );''')
@@ -168,7 +168,7 @@ def db_createProject():
     res = db_insertcontainer(name, projectname, language, version)
     if res:
         return str(res), 200
-    return 500
+    return "failed", 500
 
 @database_bp.route("/getAllProjects/", methods=['GET'])
 def db_getAllProjects():
@@ -185,9 +185,9 @@ def db_getAllProjects():
             temp['time'] = i[4]
             return_list.append(temp)
         return jsonify(return_list), 200
-    return 500
+    return "failed", 500
 
-@database_bp.route("/getProject/<container_id>/", methods=['GET'])
+@database_bp.route("/getProject/<container_id>", methods=['GET'])
 def db_getProject(container_id):
     try:
         conn = sql.connect(DB_DIR)
@@ -204,9 +204,9 @@ def db_getProject(container_id):
         return jsonify(res), 200
     except:
         print('Failed to select data from sqlite table')
-        return 500
+        return "failed", 500
 
-@database_bp.route("/deleteProject/<container_id>/", methods=['DELETE'])
+@database_bp.route("/deleteProject/<container_id>", methods=['DELETE'])
 def db_deleteProject(container_id):
     try:
         conn = sql.connect(DB_DIR)
@@ -215,13 +215,13 @@ def db_deleteProject(container_id):
         conn.commit()
         print("Total number of rows deleted :%d"%conn.total_changes)
         conn.close()
-        return 200
+        return "success", 200
     except:
         print('Failed to select data from sqlite table')
-        return 500
+        return "failed", 500
 
 @database_bp.route("/updateProject/", methods=['POST'])
-def db_updateProject(container_id):
+def db_updateProject():
     try:
         data = json.loads(request.data)
         container_id = data['containerid']
@@ -231,6 +231,6 @@ def db_updateProject(container_id):
         cur = conn.execute("UPDATE containers SET projectname='"+newname+"'WHERE containerid ='"+container_id+"';")
         conn.commit()
         conn.close()
-        return 200
+        return "success", 200
     except:
-        return 500
+        return "failed", 200

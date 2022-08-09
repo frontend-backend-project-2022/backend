@@ -53,7 +53,7 @@ def docker_bash():
     print(res)
     if res is not None:
         return res,200
-    return 500
+    return "failed", 500
 
 def docker_exec_bash(name, cmd):
     client = docker.from_env()
@@ -102,35 +102,37 @@ def docker_exec_bash(name, cmd):
 @docker_bp.route("/getdir/<containerid>", methods=['GET'])
 def docker_getdir(containerid):
     res = docker_exec_bash(containerid, 'ls -RF')
-    print(res)
+    # print(res)
     dir_list = res.split('\n\n')
     dic_temp = {}
     dic=[]
-    print(dir_list)
+    # print(dir_list)
     for item in dir_list:
         dir_part, content_part = item.strip().split(':')
         content_list = content_part.strip().split('\n')
         dic_temp[dir_part] = content_list
-
+    # print(dic_temp)
     for dir_part, content_part in dic_temp.items():
         for content in content_part:
             if len(content) > 1 and content[-1] != '/':
                 dic.append((dir_part, content))
-                dic.append((dir_part+'/'+content,""))
+                dic.append((dir_part+'/'+content,"/"))
             else:
                 dic.append((dir_part, content[:-1]))
     
     dic.sort(key=lambda elem : elem[0].count('/'), reverse= True)
-    print(dic)
+    # print(dic)
     dic2 = dict()
     for directory, content in dic:
         if content == '':
+            dic2[directory] = {}
+        elif content == '/':
             dic2[directory] = ''
         else:
             dic2[directory] = dic2.get(directory, dict())
             dic2[directory][content] = dic2[directory + '/' + content]
-    res = dic2['.'] if dic2['.']!='' else dict()
-    return json.dumps(res), 200
+    # print(dic2['.'])
+    return json.dumps(dic2['.']), 200
 
 def put_test():
     client = docker.from_env()
