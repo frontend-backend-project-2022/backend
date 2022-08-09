@@ -25,7 +25,7 @@ def login():
 @login_bp.get('/is_logged_in/')
 @login_required
 def check_logged_in():
-    return f'User {session["username"]} logged in.'
+    return session["username"]
 
 
 @login_bp.get('/logout/')
