@@ -72,7 +72,7 @@ def db_insertuser(name, pw):
 def db_insertcontainer(name, projectname='',language='',version=0):
     container_id = docker_connect()
     try:
-        userid = db_selectuser(name)[0]
+        userid = db_selectUserByName(name)[0]
         conn = sql.connect(DB_DIR)
         conn.execute("PRAGMA foreign_keys=ON;")
         conn.execute("INSERT INTO containers (containerid, projectname, time, language, version, userid) \
@@ -86,7 +86,7 @@ def db_insertcontainer(name, projectname='',language='',version=0):
             conn.close()
         return None
 
-def db_selectuser(name): # return tuple: (userid, pwhash)
+def db_selectUserByName(name): # return tuple: (userid, pwhash)
     try:
         conn = sql.connect(DB_DIR)
         conn.execute("PRAGMA foreign_keys=ON;")
@@ -103,9 +103,9 @@ def db_selectuser(name): # return tuple: (userid, pwhash)
             conn.close()
         return None
 
-def db_selectcontainer(name): # return list: [(projectname, containerid, language, version, time)]
+def db_selectContainerByUser(name): # return list: [(projectname, containerid, language, version, time)]
     try:
-        userid = db_selectuser(name)[0]
+        userid = db_selectUserByName(name)[0]
         conn = sql.connect(DB_DIR)
         conn.execute("PRAGMA foreign_keys=ON;")
         cur = conn.execute("SELECT projectname, containerid, language, version, time FROM containers WHERE userid ="+str(userid)+";")
@@ -127,8 +127,8 @@ def db_selectcontainer(name): # return list: [(projectname, containerid, languag
 def db_verify_pw(name, pw):
     try:
         pw = 'NAME:'+name+'|PW:'+pw
-        pwhash = db_selectuser(name)[1]
-        # print("verify",db_selectuser(name)[1])
+        pwhash = db_selectUserByName(name)[1]
+        # print("verify",db_selectUserByName(name)[1])
         return check_password_hash(pwhash, pw)
     except:
         return False
@@ -136,7 +136,7 @@ def db_verify_pw(name, pw):
 def db_deleteuser(name, pw): # delete from db: True for successful, False for failed
     try:
         if db_verify_pw(name, pw):
-            container_list = db_selectcontainer(name)
+            container_list = db_selectContainerByUser(name)
             conn = sql.connect(DB_DIR)
             conn.execute("PRAGMA foreign_keys=ON;")
             if container_list:
@@ -171,7 +171,7 @@ def db_createProject():
 @database_bp.route("/getAllProjects/", methods=['GET'])
 def db_getAllProjects():
     name = session['username']
-    result = db_selectcontainer(name)
+    result = db_selectContainerByUser(name)
     if result:
         return_list = []
         for i in result:

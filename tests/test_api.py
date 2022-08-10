@@ -1,9 +1,9 @@
 import pytest
 from flask import session
-from views.docker import docker_rm
+from views.docker import docker_rm, docker_exec_bash
 from io import BytesIO, StringIO
 import os
-import zipfile
+import zipfile, tarfile
 import shutil
 
 
@@ -103,28 +103,59 @@ def test_file(client, auth):
         'dir':'hsu1023',
     }
     get_data = {
-        'dir':'./hsu1023',
+        'dir':'hsu1023',
         'filename' : 'folder/123.txt',
+    }
+    upload_content = {
+        'filename':'test.py',
+        'dir':'hsu1023/new',
+        'content':'print("hello world")',
+    }
+    downloadFolder_data = {
+        'dir':'hsu1023',
+    }
+    downloadFile_data = {
+        'dir':'hsu1023/new',
+        'filename':'test.py',
     }
     with client:
         auth.login()
         client.post('/login/init/')
         containerid = client.post('/database/createProject/', json = project_data).data.decode()
-        put_data['containerid'] = get_data['containerid'] = containerid
-        print(containerid)
+        put_data['containerid'] = get_data['containerid'] = downloadFolder_data['containerid']= downloadFile_data['containerid'] = upload_content['containerid'] = containerid
         
         response = client.post('/docker/uploadFile/', data=put_data,
                       content_type='multipart/form-data')
         assert '200' in str(response)
 
         response = client.get('/docker/getdir/%s' % containerid)
-        print(response.data.decode())
         assert '{"hsu1023": {"folder": {"123.txt": ""}}}' == response.data.decode()
 
-        client.delete('/database/deleteProject/'+ containerid)
+        response = client.get('/docker/downloadFolder/', json = downloadFolder_data)
+        with open("download.tar", mode='w') as f:
+            f.write(response.text)
+        assert tarfile.is_tarfile("download.tar")
+        os.remove('download.tar')
+
+        response = client.post('/docker/uploadContent/', json = upload_content)
+        # print(docker_exec_bash(containerid, 'ls -RF'))
+        assert '200' in str(response)
+
+
+        response = client.get('/docker/downloadFile/', json = downloadFile_data)
+        # print(response.text, type(response.text))
+        with open('test.py', mode='w') as f:
+            f.write(response.text)
+        with open('test.py', mode="r") as f:
+            q = f.read()
+        assert q == 'print("hello world")'
+        os.remove('test.py')
+
+        client.delete('/database/deleteProject/'+ containerid)###
         
         r = client.get('/docker/downloadContent/', json=get_data).data.decode()
         assert "post-data" == r
+
 
 # def test_folder(client, auth):
 #     project_data = {

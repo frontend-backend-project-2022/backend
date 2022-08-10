@@ -45,9 +45,9 @@
     
     - db_insertcontainer(name, projectname='',language='',version=0)在name名下创建一个新container（包括建立 container）
     
-    - db_selectuser(name)是针对users表通过 name 获取(name, pwhash)二元组，不存在返回None
+    - db_selectUserByName(name)是针对users表通过 name 获取(name, pwhash)二元组，不存在返回None
     
-    - db_selectcontainer(name)返回name名下所有container对应的形如[(projectname, containerid, language, version, time)]的列表，不存在该用户返回None
+    - db_selectContainerByUser(name)返回name名下所有container对应的形如[(projectname, containerid, language, version, time)]的列表，不存在该用户返回None
     
     - db_verify_pw(name, pw)输入 name 和 password 返回二者是否对应(True/False)
     

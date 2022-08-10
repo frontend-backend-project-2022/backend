@@ -1,8 +1,8 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, send_file, make_response, send_from_directory
 import docker
 from docker import errors
 import json
-
+# from views.database import db_selectContainerById
 import tarfile
 import time
 from io import BytesIO, StringIO
@@ -170,6 +170,46 @@ def docker_upload_file():
     except Exception as e:
         return str(e), 500
 
+@docker_bp.route("/uploadContent/", methods=['POST'])
+def docker_upload_content():
+    
+    try:
+        
+        data = json.loads(request.data)
+        print(data)
+        filename = data['filename']
+        container_dir = data['dir']
+        container_id = data['containerid']
+        content = data['content']
+        print("k")
+        filedir = TEMPFILES_DIR + '/' + str(uuid.uuid4())
+        os.makedirs(filedir)
+
+        print("k")
+        with open(filedir + '/' + filename, 'w') as f:
+            f.write(content)
+
+        print("k")
+        with tarfile.open(filedir + '/' + filename+'.tar', 'w') as tar:
+            try:
+                tar.add(filedir + '/' + filename, arcname=container_dir + '/' + filename)
+            finally:
+                tar.close()
+
+        print("k")
+        client = docker.from_env()
+        container = client.containers.get(container_id)
+        with open(filedir + '/' + filename+'.tar', 'rb') as fd:
+            ok = container.put_archive(path="/workspace", data=fd)
+            if not ok:
+                raise Exception('Put file failed')
+            else:
+                print("no exception")
+                shutil.rmtree(filedir)
+        return "success", 200
+    except Exception as e:
+        return str(e), 500
+
 @docker_bp.route("/uploadFolder/", methods=['POST'])
 def docker_upload_folder():
     # check if the post request has the file part
@@ -210,7 +250,7 @@ def docker_upload_folder():
         return str(e), 500
 
 @docker_bp.route("/downloadContent/", methods=['GET'])
-def docker_download_file():
+def docker_download_content():
     data = json.loads(request.data)
     id = data['containerid']
     dir = data['dir']
@@ -228,3 +268,82 @@ def docker_download_file():
     tar.close()
     q = text.read()
     return q
+
+@docker_bp.route("/downloadFile/", methods=['GET'])
+def docker_download_file():
+    data = json.loads(request.data)
+    id = data['containerid']
+    dir = data['dir']
+    filename = data['filename']
+    client = docker.from_env()
+    containers = client.containers
+    container = containers.get(id)
+    strm, stat = container.get_archive(path='/workspace' + '/' + dir + '/' + filename)
+    file_obj = BytesIO()
+    for i in strm:
+        file_obj.write(i)
+    file_obj.seek(0)
+    tar = tarfile.open(mode='r', fileobj=file_obj)
+    text = tar.extractfile(os.path.basename(filename))
+    q = text.read()
+    tar.close()
+
+    filedir = TEMPFILES_DIR + '/' + str(uuid.uuid4())
+    os.makedirs(filedir)
+    
+    with open(filedir +'/' + filename,"wb") as f:
+            f.write(q)
+    
+    response = make_response(send_from_directory(filedir, filename, as_attachment=True))
+    shutil.rmtree(filedir)
+    return response
+
+@docker_bp.route("/downloadFolder/", methods=['GET'])
+def docker_download_folder():
+    data = json.loads(request.data)
+    id = data['containerid']
+    dir = data['dir']
+    client = docker.from_env()
+    containers = client.containers
+    container = containers.get(id)
+    strm, stat = container.get_archive(path='/workspace')
+    filedir = TEMPFILES_DIR + '/' + str(uuid.uuid4())
+    os.makedirs(filedir)
+    project_name = id
+    return_name = filedir + '/' + project_name
+    with open(return_name + '.tar',"wb") as f:
+        for i in strm:
+            f.write(i)
+    response = make_response(send_from_directory(filedir, project_name + '.tar', as_attachment=True))
+    shutil.rmtree(filedir)
+    return response
+
+@docker_bp.route("/createFolder/", methods=['POST'])
+def docker_create_folder():
+    data = json.loads(request.data)
+    id = data['containerid']
+    dir = data['dir']
+    bash_exec_bash(id, "mkdir %s"%dir)
+
+@docker_bp.route("/deleteFolder/", methods=['DELETE'])
+def docker_delete_folder():
+    data = json.loads(request.data)
+    id = data['containerid']
+    dir = data['dir']
+    bash_exec_bash(id, "rm -rf %s"%dir)
+
+@docker_bp.route("/createFile/", methods=['POST'])
+def docker_create_file():
+    data = json.loads(request.data)
+    id = data['containerid']
+    dir = data['dir']
+    filename = data['filename']
+    bash_exec_bash(id, "cd %s && touch %s"%(dir,filename))
+
+@docker_bp.route("/deleteFile/", methods=['DELETE'])
+def docker_delete_file():
+    data = json.loads(request.data)
+    id = data['containerid']
+    dir = data['dir']
+    filename = data['filename']
+    bash_exec_bash(id, "cd %s && rm -f %s"%(dir,filename))
