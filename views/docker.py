@@ -323,14 +323,14 @@ def docker_create_folder():
     data = json.loads(request.data)
     id = data['containerid']
     dir = data['dir']
-    bash_exec_bash(id, "cd %s && mkdir %s"%(os.path.dirname(dir), os.path.basename(dir)))
+    docker_exec_bash(id, "cd %s && mkdir %s"%(os.path.dirname(dir), os.path.basename(dir)))
 
 @docker_bp.route("/deleteFolder/", methods=['DELETE'])
 def docker_delete_folder():
     data = json.loads(request.data)
     id = data['containerid']
     dir = data['dir']
-    bash_exec_bash(id, "rm -rf %s"%dir)
+    docker_exec_bash(id, "rm -rf %s"%dir)
 
 @docker_bp.route("/createFile/", methods=['POST'])
 def docker_create_file():
@@ -338,7 +338,7 @@ def docker_create_file():
     id = data['containerid']
     dir = data['dir']
     filename = data['filename']
-    bash_exec_bash(id, "cd %s && touch %s"%(dir, filename))
+    docker_exec_bash(id, "cd %s && touch %s"%(dir, filename))
 
 @docker_bp.route("/deleteFile/", methods=['DELETE'])
 def docker_delete_file():
@@ -346,4 +346,4 @@ def docker_delete_file():
     id = data['containerid']
     dir = data['dir']
     filename = data['filename']
-    bash_exec_bash(id, "cd %s && rm -f %s"%(dir,filename))
+    docker_exec_bash(id, "cd %s && rm -f %s"%(dir,filename))
