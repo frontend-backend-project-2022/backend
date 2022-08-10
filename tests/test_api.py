@@ -2,6 +2,9 @@ import pytest
 from flask import session
 from views.docker import docker_rm
 from io import BytesIO, StringIO
+import os
+import zipfile
+import shutil
 
 
 def test_index(client):
@@ -94,16 +97,20 @@ def test_file(client, auth):
         "version": "10",
     }
     tempfile = BytesIO(b"post-data")
-    tempfile.name = '123.txt'
+    tempfile.name = 'folder/123.txt'
     put_data = {
         'file':tempfile,
+        'dir':'hsu1023',
+    }
+    get_data = {
         'dir':'./hsu1023',
+        'filename' : 'folder/123.txt',
     }
     with client:
         auth.login()
         client.post('/login/init/')
         containerid = client.post('/database/createProject/', json = project_data).data.decode()
-        put_data['containerid'] = containerid
+        put_data['containerid'] = get_data['containerid'] = containerid
         print(containerid)
         
         response = client.post('/docker/uploadFile/', data=put_data,
@@ -111,7 +118,54 @@ def test_file(client, auth):
         assert '200' in str(response)
 
         response = client.get('/docker/getdir/%s' % containerid)
-        client.delete('/database/deleteProject/'+ containerid)
         print(response.data.decode())
-        assert '{"hsu1023": {"123.txt": ""}}' == response.data.decode()
-    
+        assert '{"hsu1023": {"folder": {"123.txt": ""}}}' == response.data.decode()
+
+        client.delete('/database/deleteProject/'+ containerid)
+        
+        r = client.get('/docker/downloadContent/', json=get_data).data.decode()
+        assert "post-data" == r
+
+# def test_folder(client, auth):
+#     project_data = {
+#         "projectname": "PROJECT",
+#         "language": "python",
+#         "version": "10",
+#     }
+#     put_data = {
+#         'dir':'hsu1023',
+#     }
+#     with client:
+#         auth.login()
+#         client.post('/login/init/')
+#         if os.path.exists('test-folder') is False:
+#             os.makedirs('test-folder')
+#         with open('test-folder/test.txt', "w") as fd:
+#             fd.write('DATA')
+
+#         # f = zipfile.ZipFile('archive.zip','w',zipfile.ZIP_DEFLATED)
+#         # startdir = "test-folder"
+#         # for dirpath, dirnames, filenames in os.walk(startdir):
+#         #     for filename in filenames:
+#         #         f.write(os.path.join(dirpath,filename))
+#         # f.close()
+#         # f = open('archive.zip','rb')
+#         # put_data['file'] = f
+
+#         containerid = client.post('/database/createProject/', json = project_data).data.decode()
+#         put_data['containerid']  = containerid
+        
+
+#         response = client.post('/docker/uploadFolder/', data=put_data,content_type='multipart/form-data')
+
+#         assert '200' in str(response)
+
+#         client.delete('/database/deleteProject/'+ containerid)
+        
+#         response = client.get('/docker/getdir/%s' % containerid)
+#         print(response.data.decode())
+#         assert '{"hsu1023": {"123.txt": ""}}' == response.data.decode()
+
+#         shutil.rmtree('test-folder')
+#         os.remove('archive.zip')
+#         f.close()

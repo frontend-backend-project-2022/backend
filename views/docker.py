@@ -178,23 +178,22 @@ def docker_upload_file():
         return 'No file part', 400
     try:
         file = request.files['file']
-        # print(file.filename)
         form = request.form.to_dict()
         container_dir = form['dir']
         container_id = form['containerid']
-        filedir = os.path.join(TEMPFILES_DIR, str(uuid.uuid4()))
-        os.makedirs(filedir)
-        file.save(os.path.join(filedir, file.filename))
-        with tarfile.open(os.path.join(filedir, file.filename+'.tar'), 'w') as tar:
+        filedir = TEMPFILES_DIR + '/' + str(uuid.uuid4())
+        os.makedirs(filedir + '/' + os.path.dirname(file.filename))
+        file.save(filedir + '/' + file.filename)
+        with tarfile.open(filedir + '/' + file.filename+'.tar', 'w') as tar:
             try:
-                tar.add(os.path.join(filedir, file.filename),arcname=os.path.join(container_dir, file.filename))
+                tar.add(filedir + '/' + file.filename, arcname=container_dir + '/' + file.filename)
             finally:
                 tar.close()
 
         client = docker.from_env()
         container = client.containers.get(container_id)
-        with open(os.path.join(filedir, file.filename+'.tar'), 'rb') as fd:
-            ok = container.put_archive(path=os.path.join("/workspace"), data=fd)
+        with open(filedir + '/' + file.filename+'.tar', 'rb') as fd:
+            ok = container.put_archive(path="/workspace", data=fd)
             if not ok:
                 raise Exception('Put file failed')
             else:
@@ -203,4 +202,93 @@ def docker_upload_file():
         return "success", 200
     except Exception as e:
         return str(e), 500
-        
+
+@docker_bp.route("/uploadFile/", methods=['POST'])
+def docker_upload_file():
+    # check if the post request has the file part
+    if 'file' not in request.files:
+        return 'No file part', 400
+    try:
+        form = request.form.to_dict()
+        container_dir = form['dir']
+        container_id = form['containerid']
+        filedir = TEMPFILES_DIR + '/' + str(uuid.uuid4())
+        os.makedirs(filedir + '/' + os.path.dirname(file.filename))
+        file.save(filedir + '/' + file.filename)
+        with tarfile.open(filedir + '/' + file.filename+'.tar', 'w') as tar:
+            try:
+                tar.add(filedir + '/' + file.filename, arcname=container_dir + '/' + file.filename)
+            finally:
+                tar.close()
+
+        client = docker.from_env()
+        container = client.containers.get(container_id)
+        with open(filedir + '/' + file.filename+'.tar', 'rb') as fd:
+            ok = container.put_archive(path="/workspace", data=fd)
+            if not ok:
+                raise Exception('Put file failed')
+            else:
+                print("no exception")
+                shutil.rmtree(filedir)
+        return "success", 200
+    except Exception as e:
+        return str(e), 500
+
+@docker_bp.route("/uploadFolder/", methods=['POST'])
+def docker_upload_folder():
+    # check if the post request has the file part
+    if 'file' not in request.files:
+        return 'No file part', 400
+    try:
+        form = request.form.to_dict()
+        container_dir = form['dir']
+        container_id = form['containerid']
+        client = docker.from_env()
+        container = client.containers.get(container_id)
+
+        filedir = TEMPFILES_DIR + '/' + str(uuid.uuid4())
+
+        files = request.files.getlist("file")
+
+        for file in files:
+            filedir_ = filedir + '/' + os.path.dirname(file.filename)
+            if os.path.exists(filedir_) is False:
+                os.path.makedirs(filedir_)
+            file.save(filedir + '/' + file.filename)
+
+            with tarfile.open(filedir + '/' + file.filename+'.tar', 'w') as tar:
+                try:
+                    tar.add(filedir_ + '/' + file.filename, arcname=container_dir + '/' + file.filename)
+                finally:
+                    tar.close()
+
+            with open(filedir + '/' + file.filename+'.tar', 'rb') as fd:
+                ok = container.put_archive(path="/workspace", data=fd)
+                if not ok:
+                    raise Exception('Put file failed')
+                else:
+                    print("no exception")
+        shutil.rmtree(filedir)
+        return "success", 200
+    except Exception as e:
+        return str(e), 500
+
+@docker_bp.route("/downloadContent/", methods=['GET'])
+def docker_download_file():
+    data = json.loads(request.data)
+    id = data['containerid']
+    dir = data['dir']
+    filename = data['filename']
+    client = docker.from_env()
+    containers = client.containers
+    container = containers.get(id)
+    strm, stat = container.get_archive(path='/workspace' + '/' + dir + '/' + filename)
+    file_obj = BytesIO()
+    for i in strm:
+        file_obj.write(i)
+    file_obj.seek(0)
+    tar = tarfile.open(mode='r', fileobj=file_obj)
+    text = tar.extractfile(os.path.basename(filename))
+    tar.close()
+    q = text.read()
+    return q
