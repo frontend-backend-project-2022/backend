@@ -56,7 +56,7 @@ def docker_bash():
     res = docker_exec_bash(name, cmd)
     print(res)
     if res is not None:
-        return res,200
+        return res, 200
     return "failed", 500
 
 def docker_exec_bash(name, cmd):
@@ -166,7 +166,7 @@ def docker_upload_file():
             else:
                 print("no exception")
                 shutil.rmtree(filedir)
-        return "success", 200
+        return "success", 201
     except Exception as e:
         return str(e), 500
 
@@ -206,7 +206,7 @@ def docker_upload_content():
             else:
                 print("no exception")
                 shutil.rmtree(filedir)
-        return "success", 200
+        return "success", 201
     except Exception as e:
         return str(e), 500
 
@@ -245,7 +245,7 @@ def docker_upload_folder():
                 else:
                     print("no exception")
         shutil.rmtree(filedir)
-        return "success", 200
+        return "success", 201
     except Exception as e:
         return str(e), 500
 
@@ -323,14 +323,18 @@ def docker_create_folder():
     data = json.loads(request.data)
     id = data['containerid']
     dir = data['dir']
-    docker_exec_bash(id, "cd %s && mkdir %s"%(os.path.dirname(dir), os.path.basename(dir)))
+    if docker_exec_bash(id, "cd %s && mkdir %s"%(os.path.dirname(dir), os.path.basename(dir))):
+        return "success", 201
+    return "failed", 500
 
 @docker_bp.route("/deleteFolder/", methods=['DELETE'])
 def docker_delete_folder():
     data = json.loads(request.data)
     id = data['containerid']
     dir = data['dir']
-    docker_exec_bash(id, "rm -rf %s"%dir)
+    if docker_exec_bash(id, "rm -rf %s"%dir):
+        return "success", 200
+    return "failed", 500
 
 @docker_bp.route("/createFile/", methods=['POST'])
 def docker_create_file():
@@ -338,7 +342,9 @@ def docker_create_file():
     id = data['containerid']
     dir = data['dir']
     filename = data['filename']
-    docker_exec_bash(id, "cd %s && touch %s"%(dir, filename))
+    if docker_exec_bash(id, "cd %s && touch %s"%(dir, filename)):
+        return "success", 200
+    return "failed", 500
 
 @docker_bp.route("/deleteFile/", methods=['DELETE'])
 def docker_delete_file():
@@ -346,4 +352,6 @@ def docker_delete_file():
     id = data['containerid']
     dir = data['dir']
     filename = data['filename']
-    docker_exec_bash(id, "cd %s && rm -f %s"%(dir,filename))
+    if docker_exec_bash(id, "cd %s && rm -f %s"%(dir,filename)):
+        return "success", 200
+    return "failed", 500

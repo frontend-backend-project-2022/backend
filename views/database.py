@@ -62,10 +62,13 @@ def db_insertuser(name, pw):
             VALUES ('"+name+"','"+pwhash+"');")
         conn.commit()
         conn.close()
+        return True
+
     except sql.Error as error:
         print("Failed to insert data into sqlite table", error)
         if conn:
             conn.close()
+        return False
 
 
 
@@ -84,7 +87,6 @@ def db_insertcontainer(name, projectname='',language='',version=0):
         print("Failed to insert data into sqlite table", error)
         if conn:
             conn.close()
-        return None
 
 def db_selectUserByName(name): # return tuple: (userid, pwhash)
     try:
@@ -172,7 +174,7 @@ def db_createProject():
 def db_getAllProjects():
     name = session['username']
     result = db_selectContainerByUser(name)
-    if result:
+    if result is not None:
         return_list = []
         for i in result:
             temp = dict()
@@ -231,4 +233,4 @@ def db_updateProject():
         conn.close()
         return "success", 200
     except:
-        return "failed", 200
+        return "failed", 500
