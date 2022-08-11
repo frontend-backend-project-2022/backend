@@ -126,7 +126,7 @@ def test_file(client, auth):
         
         response = client.post('/docker/uploadFile/', data=put_data,
                       content_type='multipart/form-data')
-        assert '200' in str(response)
+        assert '201' in str(response)
 
         response = client.get('/docker/getdir/%s' % containerid)
         assert '{"hsu1023": {"folder": {"123.txt": ""}}}' == response.data.decode()
@@ -139,7 +139,7 @@ def test_file(client, auth):
 
         response = client.post('/docker/uploadContent/', json = upload_content)
         # print(docker_exec_bash(containerid, 'ls -RF'))
-        assert '200' in str(response)
+        assert '201' in str(response)
 
 
         response = client.get('/docker/downloadFile/', json = downloadFile_data)
