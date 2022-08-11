@@ -216,6 +216,7 @@ def db_deleteProject(container_id):
         conn.commit()
         print("Total number of rows deleted :%d"%conn.total_changes)
         conn.close()
+        docker_rm(container_id)
         return "success", 200
     except:
         print('Failed to select data from sqlite table')

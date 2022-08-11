@@ -1,6 +1,6 @@
 import pytest
 from flask import session
-from views.docker import docker_rm, docker_exec_bash
+from views.docker import *
 from io import BytesIO, StringIO
 import os
 import zipfile, tarfile
@@ -48,7 +48,8 @@ def test_bash(client, auth):
 
         response = client.get('/docker/getdir/%s' % containerid)
         assert '{"dir1": {"dir3": {}, "file1": ""}, "dir2": {}, "file2": ""}' == response.data.decode()
-        docker_rm(containerid)
+        response = client.delete('/database/deleteProject/'+ containerid)
+
 
 def test_project(client, auth):
     host = '/database/'
@@ -73,6 +74,7 @@ def test_project(client, auth):
         assert containerid
         assert containerid2
         project_list = client.get(host + 'getAllProjects/').json
+        print(project_list)
         assert len(project_list) == 2
 
         update_data['containerid'] = project_list[1]['containerid']
@@ -88,6 +90,7 @@ def test_project(client, auth):
         assert len(project_list) == 1
         assert project_list[0]['language'] == 'python'
         client.delete(host + 'deleteProject/'+ project_list[0]['containerid'])
+        
 
 
 def test_file(client, auth):
@@ -151,10 +154,11 @@ def test_file(client, auth):
         assert q == 'print("hello world")'
         os.remove('test.py')
 
-        client.delete('/database/deleteProject/'+ containerid)###
         
         r = client.get('/docker/downloadContent/', json=get_data).data.decode()
         assert "post-data" == r
+        
+        client.delete('/database/deleteProject/'+ containerid)###
 
 
 # def test_folder(client, auth):
