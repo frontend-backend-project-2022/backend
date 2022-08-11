@@ -87,6 +87,7 @@ def db_insertcontainer(name, projectname='',language='',version=0):
         print("Failed to insert data into sqlite table", error)
         if conn:
             conn.close()
+        return None
 
 def db_selectUserByName(name): # return tuple: (userid, pwhash)
     try:
