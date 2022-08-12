@@ -25,6 +25,14 @@ def test_login(client):
         assert "username" in session
         response = client.get('/login/is_logged_in/')
         assert user_data['username'] in response.data.decode()
+        client.get('/login/logout/')
+        client.delete('/login/register/', json=user_data)
+        client.post('/login/', json=user_data)
+        response = client.get('/login/is_logged_in/')
+        assert user_data['username'] not in response.data.decode()
+        response = client.delete('/login/register/', json=user_data)
+        assert '401' in str(response)
+        
 
 def test_bash(client, auth):
     project_data = {
