@@ -25,6 +25,14 @@ def test_login(client):
         assert "username" in session
         response = client.get('/login/is_logged_in/')
         assert user_data['username'] in response.data.decode()
+        client.get('/login/logout/')
+        client.delete('/login/register/', json=user_data)
+        client.post('/login/', json=user_data)
+        response = client.get('/login/is_logged_in/')
+        assert user_data['username'] not in response.data.decode()
+        response = client.delete('/login/register/', json=user_data)
+        assert '401' in str(response)
+        
 
 def test_bash(client, auth):
     project_data = {
@@ -136,7 +144,7 @@ def test_file(client, auth):
 
         response = client.get('/docker/downloadFolder/', json = downloadFolder_data)
         with open("download.tar", mode='w') as f:
-            f.write(response.text)
+            f.write(response.get_data(as_text=True))
         assert tarfile.is_tarfile("download.tar")
         os.remove('download.tar')
 
@@ -148,7 +156,7 @@ def test_file(client, auth):
         response = client.get('/docker/downloadFile/', json = downloadFile_data)
         # print(response.text, type(response.text))
         with open('test.py', mode='w') as f:
-            f.write(response.text)
+            f.write(response.get_data(as_text=True))
         with open('test.py', mode="r") as f:
             q = f.read()
         assert q == 'print("hello world")'
