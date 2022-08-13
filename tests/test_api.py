@@ -144,7 +144,7 @@ def test_file(client, auth):
 
         response = client.get('/docker/downloadFolder/', json = downloadFolder_data)
         with open("download.tar", mode='w') as f:
-            f.write(response.text)
+            f.write(response.get_data(as_text=True))
         assert tarfile.is_tarfile("download.tar")
         os.remove('download.tar')
 
@@ -156,7 +156,7 @@ def test_file(client, auth):
         response = client.get('/docker/downloadFile/', json = downloadFile_data)
         # print(response.text, type(response.text))
         with open('test.py', mode='w') as f:
-            f.write(response.text)
+            f.write(response.get_data(as_text=True))
         with open('test.py', mode="r") as f:
             q = f.read()
         assert q == 'print("hello world")'
