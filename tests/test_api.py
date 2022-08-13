@@ -1,6 +1,6 @@
 import pytest
 from flask import session
-from views.docker import *
+from view.dockers import *
 from io import BytesIO, StringIO
 import os
 import zipfile, tarfile

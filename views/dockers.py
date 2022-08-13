@@ -1,6 +1,5 @@
 from flask import Blueprint, jsonify, request, send_file, make_response, send_from_directory
 import docker
-from docker import errors
 import json
 # from views.database import db_selectContainerById
 import tarfile
