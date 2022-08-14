@@ -32,7 +32,7 @@ def test_login(client):
         assert user_data['username'] not in response.data.decode()
         response = client.delete('/login/register/', json=user_data)
         assert '401' in str(response)
-        
+
 
 def test_bash(client, auth):
     project_data = {
@@ -98,7 +98,7 @@ def test_project(client, auth):
         assert len(project_list) == 1
         assert project_list[0]['language'] == 'python'
         client.delete(host + 'deleteProject/'+ project_list[0]['containerid'])
-        
+
 
 
 def test_file(client, auth):
@@ -134,7 +134,7 @@ def test_file(client, auth):
         client.post('/login/init/')
         containerid = client.post('/database/createProject/', json = project_data).data.decode()
         put_data['containerid'] = get_data['containerid'] = downloadFolder_data['containerid']= downloadFile_data['containerid'] = upload_content['containerid'] = containerid
-        
+
         response = client.post('/docker/uploadFile/', data=put_data,
                       content_type='multipart/form-data')
         assert '201' in str(response)
@@ -142,7 +142,7 @@ def test_file(client, auth):
         response = client.get('/docker/getdir/%s' % containerid)
         assert '{"hsu1023": {"folder": {"123.txt": ""}}}' == response.data.decode()
 
-        response = client.get('/docker/downloadFolder/', json = downloadFolder_data)
+        response = client.get('/docker/downloadFolder/', query_string = downloadFolder_data)
         with open("download.tar", mode='w') as f:
             f.write(response.get_data(as_text=True))
         assert tarfile.is_tarfile("download.tar")
@@ -153,7 +153,7 @@ def test_file(client, auth):
         assert '201' in str(response)
 
 
-        response = client.get('/docker/downloadFile/', json = downloadFile_data)
+        response = client.get('/docker/downloadFile/', query_string  = downloadFile_data)
         # print(response.text, type(response.text))
         with open('test.py', mode='w') as f:
             f.write(response.get_data(as_text=True))
@@ -162,10 +162,10 @@ def test_file(client, auth):
         assert q == 'print("hello world")'
         os.remove('test.py')
 
-        
+
         r = client.get('/docker/downloadContent/', json=get_data).data.decode()
         assert "post-data" == r
-        
+
         client.delete('/database/deleteProject/'+ containerid)###
 
 
@@ -197,14 +197,14 @@ def test_file(client, auth):
 
 #         containerid = client.post('/database/createProject/', json = project_data).data.decode()
 #         put_data['containerid']  = containerid
-        
+
 
 #         response = client.post('/docker/uploadFolder/', data=put_data,content_type='multipart/form-data')
 
 #         assert '200' in str(response)
 
 #         client.delete('/database/deleteProject/'+ containerid)
-        
+
 #         response = client.get('/docker/getdir/%s' % containerid)
 #         print(response.data.decode())
 #         assert '{"hsu1023": {"123.txt": ""}}' == response.data.decode()

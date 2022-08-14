@@ -5,7 +5,7 @@
         ".",
         "-v",
         "--cov=.",
-        "--cov-report html",
-        "--cov-report xml:cov.xml",
+        "--cov-report=html",
+        "--cov-report=xml:cov.xml",
     ],
 }
