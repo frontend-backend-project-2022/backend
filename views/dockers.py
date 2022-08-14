@@ -356,3 +356,14 @@ def docker_delete_file():
     if docker_exec_bash(id, "cd %s && rm -f %s"%(dir,filename)):
         return "success", 200
     return "failed", 500
+
+@docker_bp.route("/renameFile/", methods=['POST'])
+def docker_rename_file():
+    data = json.loads(request.data)
+    id = data['containerid']
+    dir = data['dir']
+    filename = data['filename']
+    newname = data['newname']
+    if docker_exec_bash(id, f"cd {dir} && mv {filename} {newname}"):
+        return "success", 200
+    return "failed", 500
