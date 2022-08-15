@@ -5,6 +5,7 @@ import pty
 import select
 import os
 import subprocess
+import time
 
 
 socketio = SocketIO(cors_allowed_origins="*")
@@ -17,7 +18,6 @@ def send_worker():
             socketio.emit("response", output_from_docker.decode())
 
 
-import time
 @socketio.on("connectSignal")
 def init_terminal(name):
     container_id = docker_connect(name)
