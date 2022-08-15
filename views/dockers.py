@@ -325,7 +325,7 @@ def docker_create_folder():
     data = json.loads(request.data)
     id = data['containerid']
     dir = data['dir']
-    if docker_exec_bash(id, "cd %s && mkdir %s"%(os.path.dirname(dir), os.path.basename(dir))):
+    if docker_exec_bash(id, "cd %s && mkdir %s"%(os.path.dirname(dir), os.path.basename(dir))) is not None:
         return "success", 201
     return "failed", 500
 
@@ -334,7 +334,7 @@ def docker_delete_folder():
     data = json.loads(request.data)
     id = data['containerid']
     dir = data['dir']
-    if docker_exec_bash(id, "rm -rf %s"%dir):
+    if docker_exec_bash(id, "rm -rf %s"%dir) is not None:
         return "success", 200
     return "failed", 500
 
@@ -344,8 +344,8 @@ def docker_create_file():
     id = data['containerid']
     dir = data['dir']
     filename = data['filename']
-    if docker_exec_bash(id, "cd %s && touch %s"%(dir, filename)):
-        return "success", 200
+    if docker_exec_bash(id, "cd %s && touch %s"%(dir, filename)) is not None:
+        return "success", 201
     return "failed", 500
 
 @docker_bp.route("/deleteFile/", methods=['DELETE'])
@@ -354,7 +354,7 @@ def docker_delete_file():
     id = data['containerid']
     dir = data['dir']
     filename = data['filename']
-    if docker_exec_bash(id, "cd %s && rm -f %s"%(dir,filename)):
+    if docker_exec_bash(id, "cd %s && rm -f %s"%(dir,filename)) is not None:
         return "success", 200
     return "failed", 500
 
@@ -365,6 +365,6 @@ def docker_rename_file():
     dir = data['dir']
     filename = data['filename']
     newname = data['newname']
-    if docker_exec_bash(id, f"cd {dir} && mv {filename} {newname}"):
+    if docker_exec_bash(id, f"cd {dir} && mv {filename} {newname}") is not None:
         return "success", 200
     return "failed", 500

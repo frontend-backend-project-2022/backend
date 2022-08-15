@@ -129,11 +129,23 @@ def test_file(client, auth):
         'dir':'hsu1023/new',
         'filename':'test.py',
     }
+    createFolder_data = {
+        'dir':'hsu1023/newFolder',
+    }
+    createFile_data = {
+        'dir':'hsu1023/newFolder',
+        'filename':'test.py'
+    }
+    renameFile_data = {
+        'dir':'hsu1023/new',
+        'filename':'test.py',
+        'newname':'test2.py',
+    }
     with client:
         auth.login()
         client.post('/login/init/')
         containerid = client.post('/database/createProject/', json = project_data).data.decode()
-        put_data['containerid'] = get_data['containerid'] = downloadFolder_data['containerid']= downloadFile_data['containerid'] = upload_content['containerid'] = containerid
+        put_data['containerid'] = get_data['containerid'] = downloadFolder_data['containerid']= downloadFile_data['containerid'] = upload_content['containerid'] = renameFile_data['containerid'] = createFile_data['containerid'] = createFolder_data['containerid'] = containerid
 
         response = client.post('/docker/uploadFile/', data=put_data,
                       content_type='multipart/form-data')
@@ -162,9 +174,20 @@ def test_file(client, auth):
         assert q == 'print("hello world")'
         os.remove('test.py')
 
-
         r = client.get('/docker/downloadContent/', json=get_data).data.decode()
         assert "post-data" == r
+        
+        response = client.post('/docker/createFolder/', json=createFolder_data)
+        assert '201' in str(response)
+        response = client.post('/docker/createFile/', json=createFile_data)
+        assert '201' in str(response)
+        response = client.delete('/docker/deleteFile/', json=createFile_data)
+        assert '200' in str(response)
+        response = client.delete('/docker/deleteFolder/', json=createFolder_data)
+        assert '200' in str(response)
+
+        response = client.post('/docker/renameFile/', json=renameFile_data)
+        assert '200' in str(response)
 
         client.delete('/database/deleteProject/'+ containerid)###
 
