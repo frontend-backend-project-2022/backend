@@ -40,10 +40,10 @@ def pdb_connect(container_id, filepath):
             return 500
         psocket.expect("(Pdb)")
         pdb = pdbData(container_id, filepath, psocket)
-        pdb_poll[response.sid] = pdb
-        socketio.emit("message",pdb.response(),to=response.sid)
+        pdb_poll[request.sid] = pdb
+        socketio.emit("message",pdb.response(),to=request.sid)
     except:
-        socketio.emit("error","",to=response.sid)
+        socketio.emit("error","",to=request.sid)
 
 @socketio.on("add")
 def pdb_add_breakpoint(lineno):
@@ -56,7 +56,7 @@ def pdb_add_breakpoint(lineno):
     if index == 0:
         print("successfully added line %d"%lineno)
         pdb.bp.append(lineno)
-        socketio.emit("response", pdb.response(),to=response.sid)
+        socketio.emit("response", pdb.response(),to=request.sid)
     else:
         print("error %d:%s"%(index, psocket.after.decode('utf-8')))
         
@@ -78,7 +78,7 @@ def pdb_delete_breakpoint(linenos):
             pdb.bp[i - 1] = -1
         else:
             print("error %d:%s"%(index, psocket.after.decode('utf-8')))
-    socketio.emit("response", pdb.response(),to=response.sid)
+    socketio.emit("response", pdb.response(),to=request.sid)
 
 @socketio.on("skip")
 def pdb_next_breakpoint():
@@ -102,10 +102,10 @@ def pdb_next_breakpoint():
         s, f = re.search('\(\d+\)<', res).span()
         print(res[s + 1 : f - 2]) #lineno
         pdb.lineno = int(res[s + 1 : f - 2])
-        socketio.emit("response", pdb.response(console),to=response.sid)
+        socketio.emit("response", pdb.response(console),to=request.sid)
     else:
         pdb.state = 0
-        socketio.emit("response", pdb.response(),to=response.sid)
+        socketio.emit("response", pdb.response(),to=request.sid)
 
 @socketio.on("next")
 def pdb_next_line():    
@@ -122,7 +122,7 @@ def pdb_next_line():
         s, f = re.search('\(\d+\)<', res).span()
         print(res[s + 1:f - 2]) #lineno
         pdb.lineno = int(res[s + 1 : f - 2])
-        socketio.emit("response", pdb.response(console),to=response.sid)
+        socketio.emit("response", pdb.response(console),to=request.sid)
         
 @socketio.on("exit")
 def pdb_exit():
@@ -135,7 +135,7 @@ def pdb_exit():
     if index == 0:
         pdb.lineno = 0
         pdb.state = 0
-        socketio.emit("response", pdb.response(),to=response.sid)
+        socketio.emit("response", pdb.response(),to=request.sid)
         del pdb_poll[request.sid]
 
 @socketio.on("check")
@@ -166,4 +166,4 @@ def pdb_getvalue(variables):
             value = int(value)
 
         variables_list.append({'name':i,'value':value,'type':typeof})
-    socketio.emit("response", pdb.response(variables_list),to=response.sid)
+    socketio.emit("response", pdb.response(variables_list),to=request.sid)
