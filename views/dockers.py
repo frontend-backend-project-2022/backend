@@ -96,10 +96,10 @@ def docker_exec_bash(name, cmd):
     #         # either 0 or end of data
     #             break
     #     return data.decode("utf8")
-    # except Exception as e: 
+    # except Exception as e:
     #     print(e)
     #     return None
-    
+
 
 # recursively print directorys
 @docker_bp.route("/getdir/<containerid>", methods=['GET'])
@@ -122,7 +122,7 @@ def docker_getdir(containerid):
                 dic.append((dir_part+'/'+content,"/"))
             else:
                 dic.append((dir_part, content[:-1]))
-    
+
     dic.sort(key=lambda elem : elem[0].count('/'), reverse= True)
     # print(dic)
     dic2 = dict()
@@ -171,9 +171,9 @@ def docker_upload_file():
 
 @docker_bp.route("/uploadContent/", methods=['POST'])
 def docker_upload_content():
-    
+
     try:
-        
+
         data = json.loads(request.data)
         print(data)
         filename = data['filename']
@@ -248,7 +248,7 @@ def docker_upload_folder():
     except Exception as e:
         return str(e), 500
 
-@docker_bp.route("/downloadContent/", methods=['GET'])
+@docker_bp.route("/downloadContent/", methods=['GET', 'POST'])
 def docker_download_content():
     data = json.loads(request.data)
     id = data['containerid']
@@ -270,7 +270,8 @@ def docker_download_content():
 
 @docker_bp.route("/downloadFile/", methods=['GET'])
 def docker_download_file():
-    data = json.loads(request.data)
+    # data = json.loads(request.data)
+    data = request.args
     id = data['containerid']
     dir = data['dir']
     filename = data['filename']
@@ -289,17 +290,18 @@ def docker_download_file():
 
     filedir = TEMPFILES_DIR + '/' + str(uuid.uuid4())
     os.makedirs(filedir)
-    
+
     with open(filedir +'/' + filename,"wb") as f:
             f.write(q)
-    
+
     response = make_response(send_from_directory(filedir, filename, as_attachment=True))
     shutil.rmtree(filedir)
     return response
 
 @docker_bp.route("/downloadFolder/", methods=['GET'])
 def docker_download_folder():
-    data = json.loads(request.data)
+    # data = json.loads(request.data)
+    data = request.args
     id = data['containerid']
     dir = data['dir']
     client = docker.from_env()
@@ -352,5 +354,16 @@ def docker_delete_file():
     dir = data['dir']
     filename = data['filename']
     if docker_exec_bash(id, "cd %s && rm -f %s"%(dir,filename)):
+        return "success", 200
+    return "failed", 500
+
+@docker_bp.route("/renameFile/", methods=['POST'])
+def docker_rename_file():
+    data = json.loads(request.data)
+    id = data['containerid']
+    dir = data['dir']
+    filename = data['filename']
+    newname = data['newname']
+    if docker_exec_bash(id, f"cd {dir} && mv {filename} {newname}"):
         return "success", 200
     return "failed", 500
