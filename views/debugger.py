@@ -1,51 +1,71 @@
 import docker
 import pexpect.fdpexpect
 import re
+import os
+from flask import request, jsonify
 from flask_socketio import SocketIO
 
 socketio = SocketIO(cors_allowed_origins="*")
 
-class info():
-    def __init__(bp, containerid, psocket):
-        self.bp = bp
+class pdbData():
+    def __init__(self, containerid, filepath, psocket):
+        self.bp = [] #
         self.containerid = containerid
+        self.filepath = filepath
         self.psocket = psocket
+        self.lineno = 1 #
+        self.state = 1 #
+    def response(message = ""):
+        # 返回的bp里-1代表已删除
+        dic = {'bp':self.bp, 'lineno':self.lineno,'state':self.state, 'message':message}
+        return jsonify(dic)
 
-session_info = {}
+pdb_poll = dict()
 
-def pdb_connect(container_id):
-    client = docker.from_env()
-    containers = client.containers
-    container_id = '69'
-    container = containers.get(container_id)
-    _, sock = container.exec_run("/bin/bash", socket=True, stdin=True, tty=True)
-    psocket = pexpect.fdpexpect.fdspawn(sock.fileno(),timeout=10)
+@socketio.on("connectSignal")
+def pdb_connect(container_id, filepath):
+    try:
+        client = docker.from_env()
+        containers = client.containers
+        container = containers.get(container_id)
+        _, sock = container.exec_run("/bin/bash", socket=True, stdin=True, tty=True)
+        psocket = pexpect.fdpexpect.fdspawn(sock.fileno(),timeout=10)
 
-    psocket.expect("#")
-    psocket.sendline("cd test && python -m pdb test2.py")
-    index = psocket.expect(["> \S*\(1\)<module>\(\)", "Error"])
-    if index == 0:
-        print("successfully connected")
-    elif index == 1:
-        return 500
-    psocket.expect("(Pdb)")
-    try:        
-        return psocket
-    except:
-        return 200
-
-def pdb_add_breakpoint(linenos):
-    for i in linenos:
-        psocket.sendline("b %d"%i)
-        index = psocket.expect(["Breakpoint \d+ at .*:%d"%i,"End of file","\*\*\*"])
+        psocket.expect("#")
+        psocket.sendline("python -m pdb %s"%filename)
+        index = psocket.expect(["> \S*\(1\)<module>\(\)", "Error"])
         if index == 0:
-            print("successfully added line %d"%i)
-            session['bp'].append(i)
-        else:
-            print("error %d:%s"%(index, psocket.after.decode('utf-8')))
+            print("successfully connected")
+        elif index == 1:
+            return 500
+        psocket.expect("(Pdb)")
+        pdb_poll[request.sid] = pdbData(container_id, filepath, psocket)
+    except:
+        socketio.emit("error","",to=sid)
 
+@socketio.on("add")
+def pdb_add_breakpoint(lineno):
+    pdb = pdb_poll[request.sid]
+    if pdb.state == 0:
+        return "Unstarted", 500
+    psocket = pdb.psocket
+    psocket.sendline("b %d"%lineno)
+    index = psocket.expect(["Breakpoint \d+ at .*:%d"%lineno,"End of file","\*\*\*"])
+    if index == 0:
+        print("successfully added line %d"%lineno)
+        pdb.bp.append(lineno)
+        emit("response", pdb.response())
+    else:
+        print("error %d:%s"%(index, psocket.after.decode('utf-8')))
+        
+            
+@socketio.on("delete")
 def pdb_delete_breakpoint(linenos):
-    pos = [i + 1 for i in range(len(session['bp'])) if session['bp'][i] in linenos]
+    pdb = pdb_poll[request.sid]
+    if pdb.state == 0:
+        return "Unstarted", 500
+    psocket = pdb.psocket
+    pos = [i + 1 for i in range(len(pdb.bp)) if pdb.bp[i] in linenos]
     for i in pos:
         print(i)
         psocket.sendline("cl %d"%i)
@@ -53,13 +73,18 @@ def pdb_delete_breakpoint(linenos):
 
         if index == 0:
             print("successfully deleted bp %d"%i)
-            session[i] = -1
+            pdb.bp[i - 1] = -1
         else:
             print("error %d:%s"%(index, psocket.after.decode('utf-8')))
-        
+    emit("response", pdb.response())
+
+@socketio.on("skip")
 def pdb_next_breakpoint():
+    pdb = pdb_poll[request.sid]
+    if pdb.state == 0:
+        return "Unstarted", 500
+    psocket = pdb.psocket
     psocket.sendline("c")
-    # psocket.expect('(Pdb) c')
     index = psocket.expect(["> .*\(\d+\)<module>()"])
     if index == 0:
         res = psocket.after.decode('utf-8')
@@ -73,9 +98,19 @@ def pdb_next_breakpoint():
         print(console) #stdout/stderr
 
         s, f = re.search('\(\d+\)<', res).span()
-        print(res[s + 1:f - 2]) #lineno
+        print(res[s + 1 : f - 2]) #lineno
+        pdb.lineno = int(res[s + 1 : f - 2])
+        emit("response", pdb.response(console))
+    else:
+        pdb.state = 0
+        emit("response", pdb.response())
 
-def pdb_next_line():
+@socketio.on("next")
+def pdb_next_line():    
+    pdb = pdb_poll[request.sid]
+    if pdb.state == 0:
+        return "Unstarted", 500
+    psocket = pdb.psocket
     psocket.sendline("n")
     index = psocket.expect(["> .*\(\d+\)<module>()"])
     if index == 0:
@@ -84,14 +119,28 @@ def pdb_next_line():
         print(console) #stdout/stderr
         s, f = re.search('\(\d+\)<', res).span()
         print(res[s + 1:f - 2]) #lineno
+        pdb.lineno = int(res[s + 1 : f - 2])
+        emit("response", pdb.response(console))
         
+@socketio.on("exit")
 def pdb_exit():
+    pdb = pdb_poll[request.sid]
+    if pdb.state == 0:
+        return "Unstarted", 500
+    psocket = pdb.psocket
     psocket.sendline("exit")
     index = psocket.expect(["exit"])
     if index == 0:
-        return 200
+        pdb.lineno = 0
+        pdb.state = 0
+        emit("response", pdb.response())
+        del pdb_poll[request.sid]
 
 def pdb_getvalue(variables):
+    pdb = pdb_poll[request.sid]
+    if pdb.state == 0:
+        return "Unstarted", 500
+    psocket = pdb.psocket
     variables_list = []
     for i in variables:
         psocket.sendline("p %s"%i)
@@ -114,13 +163,4 @@ def pdb_getvalue(variables):
             value = int(value)
 
         variables_list.append({'name':i,'value':value,'type':typeof})
-    print(variables_list)
-    return variables_list
-
-pdb_connect('69',)
-pdb_add_breakpoint([4,])
-pdb_next_breakpoint()
-pdb_next_line()
-pdb_delete_breakpoint([4,])
-pdb_next_line()
-pdb_getvalue(['i','sum'])
+    emit("response", pdb.response(variables_list))
