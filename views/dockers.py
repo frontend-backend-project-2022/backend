@@ -118,8 +118,9 @@ def docker_getdir(containerid):
     for dir_part, content_part in dic_temp.items():
         for content in content_part:
             if len(content) > 1 and content[-1] != '/':
-                dic.append((dir_part, content))
-                dic.append((dir_part+'/'+content,"/"))
+                content_ = content if content[-1] not in ['*','|','='] else content[:-1]
+                dic.append((dir_part, content_))
+                dic.append((dir_part+'/'+content_,"/"))
             else:
                 dic.append((dir_part, content[:-1]))
 
