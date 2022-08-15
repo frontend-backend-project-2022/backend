@@ -73,7 +73,7 @@ def db_insertuser(name, pw):
 
 
 def db_insertcontainer(name, projectname='',language='',version=0):
-    container_id = docker_connect()
+    container_id = docker_connect(language=language, version=version)
     try:
         userid = db_selectUserByName(name)[0]
         conn = sql.connect(DB_DIR)
@@ -166,6 +166,7 @@ def db_createProject():
     projectname = data['projectname']
     language = data['language']
     version = data['version']
+    
     res = db_insertcontainer(name, projectname, language, version)
     if res:
         return str(res), 200

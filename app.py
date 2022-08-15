@@ -27,15 +27,5 @@ def hello_world():
 
 db_init()
 
-    # tar = tarfile.open(mode='r', fileobj=file_obj)
-    # text = tar.extractfile(os.path.basename(filename))
-    # tar.close()
-    # q = text.read()
-    # return q
-
-# id = docker_connect()
-# docker_exec_bash(id, "mkdir dir1 && mkdir dir2 && touch file2 && cd dir1 && touch file1 && mkdir dir3")
-# downfile(id)
-
 if __name__ == "__main__":
     app.run(debug=True)

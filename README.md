@@ -38,24 +38,8 @@
     ```
   
   - 注：pwhash 是 password 经过 sha256 加盐 hash 得到的
-  
-  - API:
-    
-    - db_insertuser(name, pw)可直接插入新user
-    
-    - db_insertcontainer(name, projectname='',language='',version=0)在name名下创建一个新container（包括建立 container）
-    
-    - db_selectUserByName(name)是针对users表通过 name 获取(name, pwhash)二元组，不存在返回None
-    
-    - db_selectContainerByUser(name)返回name名下所有container对应的形如[(projectname, containerid, language, version, time)]的列表，不存在该用户返回None
-    
-    - db_verify_pw(name, pw)输入 name 和 password 返回二者是否对应(True/False)
-    
-    - db_deleteuser(name, pw)输入 name 和 password，如果二者匹配成功则删除，返回删除是否成功(True/False)（包括删除所有的container）
 
 如果安装了新的库记得更新`requirements.txt`，有什么进展也可以写在`README`里。
-
-7/30（徐浩博）：docker.py 给出了在 docker 内执行某个 bash 操作的 api，正确性有待测试
 
 - login.py 实现了index，login，register，deregister四个页面的跳转，其中只简单实现了四个网页，并放在backend目录下的templates目录里。在login.py中使用rander_template函数渲染网页。
   
@@ -74,3 +58,5 @@
 - 08/04；添加了CI，提交时用flake8检查并格式化Python代码，并执行`tests/`文件夹下的测试用例
 
 - 08/09：添加了vscode显示文件测试覆盖率的支持，需要`Coverage Gutters`插件，运行测试后，点击左下角的`Watch`按钮，即可在代码编辑器中查看语句的测试覆盖情况
+
+- 08/16：添加了docker的镜像，最好提前在本地下载gcc:8.3/python:3.8/python3.9/python3.10的镜像

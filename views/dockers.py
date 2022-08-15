@@ -8,6 +8,7 @@ from io import BytesIO, StringIO
 import os
 import uuid
 import shutil
+import re
 
 docker_bp = Blueprint("docker", __name__)
 
@@ -22,13 +23,22 @@ def docker_index():
     return "Docker Index"
 
 @docker_bp.route("/connect/", methods=['GET'])
-def docker_connect(name=None):
+def docker_connect(name=None, language=None, version=None):
     client = docker.from_env()
     containers = client.containers
+    
     try: #existing
         container = containers.get(name)
     except:
-        container = containers.run("ubuntu",name=name,tty=True, detach=True,command="bash", working_dir='/workspace')
+        img = 'ubuntu'
+        if language and version:
+            if language == 'Python':
+                s, f = re.search('3.\d+', version).span()
+                img = "python:%s"%version[s:f]
+            elif language == 'C/C++':
+                img = "gcc:8.3"
+        print(img)
+        container = containers.run(img, name=name,tty=True, detach=True,command="bash", working_dir='/workspace')
     return container.id
 
 def docker_rm(id):
