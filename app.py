@@ -21,7 +21,6 @@ sock.init_app(app)
 from views.xterm import socketio
 socketio.init_app(app)
 
-
 @app.route("/")
 def hello_world():
     return "<p>Hello, World!</p>"

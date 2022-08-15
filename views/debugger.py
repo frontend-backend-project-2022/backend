@@ -1,17 +1,26 @@
 import docker
 import pexpect.fdpexpect
 import re
+from flask_socketio import SocketIO
 
-client = docker.from_env()
-containers = client.containers
-container_id = '69'
-container = containers.get(container_id)
-_, sock = container.exec_run("/bin/bash", socket=True, stdin=True, tty=True)
-session = {'bp':[]}
+socketio = SocketIO(cors_allowed_origins="*")
 
-psocket = pexpect.fdpexpect.fdspawn(sock.fileno(),timeout=10)
+class info():
+    def __init__(bp, containerid, psocket):
+        self.bp = bp
+        self.containerid = containerid
+        self.psocket = psocket
+
+session_info = {}
 
 def pdb_connect(container_id):
+    client = docker.from_env()
+    containers = client.containers
+    container_id = '69'
+    container = containers.get(container_id)
+    _, sock = container.exec_run("/bin/bash", socket=True, stdin=True, tty=True)
+    psocket = pexpect.fdpexpect.fdspawn(sock.fileno(),timeout=10)
+
     psocket.expect("#")
     psocket.sendline("cd test && python -m pdb test2.py")
     index = psocket.expect(["> \S*\(1\)<module>\(\)", "Error"])
