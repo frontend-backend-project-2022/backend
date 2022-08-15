@@ -4,8 +4,6 @@ from views.dockers import *
 from views.database import *
 from views.login import login_bp
 
-
-
 app = Flask(__name__, template_folder="templates")
 app.register_blueprint(docker_bp, url_prefix="/docker")
 app.register_blueprint(database_bp, url_prefix="/database")

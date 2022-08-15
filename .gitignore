@@ -4,3 +4,4 @@ cov.xml
 .coverage
 /tempfiles
 /test-folder
+/test
