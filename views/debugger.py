@@ -2,6 +2,7 @@ import docker
 import pexpect.fdpexpect
 import re
 import os
+import json
 from flask import request, jsonify
 from flask_socketio import SocketIO
 
@@ -15,9 +16,10 @@ class pdbData():
         self.psocket = psocket
         self.lineno = 1 #
         self.state = 1 #
-    def response(self,message = ""):
+    def response(self, messageType="none", message = ""):
         # 返回的bp里-1代表已删除
-        dic = {'bp':self.bp, 'lineno':self.lineno,'state':self.state, 'message':message}
+        bp_ = [{i for i in self.bp} - {-1}]
+        dic = {'bp':bp_, 'lineno':self.lineno,'state':self.state, 'messageType':messageType, 'message':message}
         return jsonify(dic)
 
 pdb_poll = dict()
@@ -60,14 +62,13 @@ def pdb_add_breakpoint(lineno):
     else:
         print("error %d:%s"%(index, psocket.after.decode('utf-8')))
         
-            
 @socketio.on("delete")
-def pdb_delete_breakpoint(linenos):
+def pdb_delete_breakpoint(lineno):
     pdb = pdb_poll[request.sid]
     if pdb.state == 0:
         return "Unstarted", 500
     psocket = pdb.psocket
-    pos = [i + 1 for i in range(len(pdb.bp)) if pdb.bp[i] in linenos]
+    pos = [i + 1 for i in range(len(pdb.bp)) if pdb.bp[i] == lineno]
     for i in pos:
         print(i)
         psocket.sendline("cl %d"%i)
@@ -102,7 +103,7 @@ def pdb_next_breakpoint():
         s, f = re.search('\(\d+\)<', res).span()
         print(res[s + 1 : f - 2]) #lineno
         pdb.lineno = int(res[s + 1 : f - 2])
-        socketio.emit("response", pdb.response(console),to=request.sid)
+        socketio.emit("response", pdb.response(messageType="stdout",message=console),to=request.sid)
     else:
         pdb.state = 0
         socketio.emit("response", pdb.response(),to=request.sid)
@@ -122,7 +123,7 @@ def pdb_next_line():
         s, f = re.search('\(\d+\)<', res).span()
         print(res[s + 1:f - 2]) #lineno
         pdb.lineno = int(res[s + 1 : f - 2])
-        socketio.emit("response", pdb.response(console),to=request.sid)
+        socketio.emit("response", pdb.response(messageType="stdout",message=console),to=request.sid)
         
 @socketio.on("exit")
 def pdb_exit():
@@ -140,6 +141,7 @@ def pdb_exit():
 
 @socketio.on("check")
 def pdb_getvalue(variables):
+    variables = json.loads(variables)
     pdb = pdb_poll[request.sid]
     if pdb.state == 0:
         return "Unstarted", 500
@@ -166,4 +168,4 @@ def pdb_getvalue(variables):
             value = int(value)
 
         variables_list.append({'name':i,'value':value,'type':typeof})
-    socketio.emit("response", pdb.response(variables_list),to=request.sid)
+    socketio.emit("response", pdb.response(messageType="variables",message=variables_list),to=request.sid)
