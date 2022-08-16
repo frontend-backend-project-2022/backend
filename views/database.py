@@ -166,7 +166,7 @@ def db_createProject():
         
         res = db_insertcontainer(name, projectname, language, version)
         if res:
-            return str(res), 200
+            return str(res), 201
         return "failed", 500
     except KeyError as e:
         if repr(e) == "KeyError('username')":

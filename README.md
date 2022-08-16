@@ -41,22 +41,51 @@
 
 如果安装了新的库记得更新`requirements.txt`，有什么进展也可以写在`README`里。
 
-- login.py 实现了index，login，register，deregister四个页面的跳转，其中只简单实现了四个网页，并放在backend目录下的templates目录里。在login.py中使用rander_template函数渲染网页。
-  
-  - 访问127.0.0.1:5000/login/ 若已登录，则显示index.html欢迎界面；若未登录，则重定向至登录界面127.0.0.1:5000/login/login/
-  
-  - 用户需要先点击登录界面的register按钮注册，输入4-64位的用户名，8-64位的密码，并再次输入相同密码才能完成注册，注册成功后会自动跳转回登录界面
-  
-  - 用户登录成功后会跳转到127.0.0.1:5000/login/ 登录成功后可以点击该页面的logout链接登出。
-  
-  - 用户可以点击login界面的deregister链接进入账号注销界面127.0.0.1:5000/login/deregister 正确输入用户名和密码并确认后账号将注销。
-  
-  - 接口is_login()当用户已登录时返回True，否则返回False。
-
-- form.py 规定了register、deregister、login的form格式，对用户名和密码的长度做了一定限制。之后也可以考虑引入正则表达式对其添加其他内容上的限制。
-
 - 08/04；添加了CI，提交时用flake8检查并格式化Python代码，并执行`tests/`文件夹下的测试用例
 
 - 08/09：添加了vscode显示文件测试覆盖率的支持，需要`Coverage Gutters`插件，运行测试后，点击左下角的`Watch`按钮，即可在代码编辑器中查看语句的测试覆盖情况
 
 - 08/16：添加了docker的镜像，最好提前在本地下载gcc:8.3/python:3.8/python3.9/python3.10的镜像
+
+- 错误信息：
+  - login：
+    - check_logged_in：200 if logged in else 401
+    - login：200 if success else 401
+    - register（POST）：
+      - 用户名已存在：400
+      - 注册失败：500
+      - 成功：201
+    - register（DELETE）：
+      - 用户名密码验证失败：401
+      - 删除失败：500
+      - 成功：200
+  - database：
+    - db_createProject:
+      - 未登录（sessions['username']不存在）：401
+      - 项目参数缺失（但可以为空）：400
+      - 创建失败：500
+      - 成功：201
+    - db_getAllProjects：
+      - 未登录（sessions['username']不存在）：401
+      - 项目参数缺失（但可以为空）：400
+      - 创建失败：500
+      - 成功：200
+    - db_getProject、db_deleteProject、db_updateProject：200 if success else 500
+  - dockers：
+    - docker_bash、docker_getdir：200 if success else 500
+    - docker_upload_file、docker_upload_folder:
+      - 没有文件或其他项目参数缺失（但可以为空）：400
+      - 失败：500
+      - 成功：201
+    - docker_upload_content：201 if success else 500
+    - docker_download_content：
+      - 项目参数缺失（但可以为空）：400
+      - 失败：500
+      - 成功：200
+    - docker_download_file、docker_download_folder：
+      - 项目参数缺失（但可以为空）：400
+      - 未找到文件：404
+      - 成功：200
+    - docker_create_file、docker_create_folder：201 if success else 500
+    - docker_delete_file、docker_delete_folder、docker_rename_file：200 if success else 500
+    

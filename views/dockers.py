@@ -114,39 +114,43 @@ def docker_exec_bash(name, cmd):
 # recursively print directorys
 @docker_bp.route("/getdir/<containerid>", methods=['GET'])
 def docker_getdir(containerid):
-    res = docker_exec_bash(containerid, 'ls -RF')
-    # print(res)
-    dir_list = res.split('\n\n')
-    dic_temp = {}
-    dic=[]
-    # print(dir_list)
-    for item in dir_list:
-        dir_part, content_part = item.strip().split(':')
-        content_list = content_part.strip().split('\n')
-        dic_temp[dir_part] = content_list
-    # print(dic_temp)
-    for dir_part, content_part in dic_temp.items():
-        for content in content_part:
-            if len(content) > 1 and content[-1] != '/':
-                content_ = content if content[-1] not in ['*','|','='] else content[:-1]
-                dic.append((dir_part, content_))
-                dic.append((dir_part+'/'+content_,"/"))
-            else:
-                dic.append((dir_part, content[:-1]))
+    try:
+        res = docker_exec_bash(containerid, 'ls -RF')
+        # print(res)
+        dir_list = res.split('\n\n')
+        dic_temp = {}
+        dic=[]
+        # print(dir_list)
+        for item in dir_list:
+            dir_part, content_part = item.strip().split(':')
+            content_list = content_part.strip().split('\n')
+            dic_temp[dir_part] = content_list
+        # print(dic_temp)
+        for dir_part, content_part in dic_temp.items():
+            for content in content_part:
+                if len(content) > 1 and content[-1] != '/':
+                    content_ = content if content[-1] not in ['*','|','='] else content[:-1]
+                    dic.append((dir_part, content_))
+                    dic.append((dir_part+'/'+content_,"/"))
+                else:
+                    dic.append((dir_part, content[:-1]))
 
-    dic.sort(key=lambda elem : elem[0].count('/'), reverse= True)
-    # print(dic)
-    dic2 = dict()
-    for directory, content in dic:
-        if content == '':
-            dic2[directory] = {}
-        elif content == '/':
-            dic2[directory] = ''
-        else:
-            dic2[directory] = dic2.get(directory, dict())
-            dic2[directory][content] = dic2[directory + '/' + content]
-    # print(dic2['.'])
-    return json.dumps(dic2['.']), 200
+        dic.sort(key=lambda elem : elem[0].count('/'), reverse= True)
+        # print(dic)
+        dic2 = dict()
+        for directory, content in dic:
+            if content == '':
+                dic2[directory] = {}
+            elif content == '/':
+                dic2[directory] = ''
+            else:
+                dic2[directory] = dic2.get(directory, dict())
+                dic2[directory][content] = dic2[directory + '/' + content]
+        # print(dic2['.'])
+        return json.dumps(dic2['.']), 200
+    except Exception as e:
+        print(repr(e) + "during docker_getdir()")
+        return "failed", 500
 
 @docker_bp.route("/uploadFile/", methods=['POST'])
 def docker_upload_file():
@@ -177,7 +181,11 @@ def docker_upload_file():
                 print("no exception")
                 shutil.rmtree(filedir)
         return "success", 201
+    except KeyError as e:
+        print(repr(e))
+        return repr(e), 400
     except Exception as e:
+        print(str(e))
         return str(e), 500
 
 @docker_bp.route("/uploadContent/", methods=['POST'])
@@ -256,79 +264,96 @@ def docker_upload_folder():
                     print("no exception")
         shutil.rmtree(filedir)
         return "success", 201
+    except KeyError as e:
+        print(repr(e))
+        return repr(e), 400
     except Exception as e:
+        print(str(e))
         return str(e), 500
 
 @docker_bp.route("/downloadContent/", methods=['GET', 'POST'])
 def docker_download_content():
-    data = json.loads(request.data)
-    id = data['containerid']
-    dir = data['dir']
-    filename = data['filename']
-    client = docker.from_env()
-    containers = client.containers
-    container = containers.get(id)
-    strm, stat = container.get_archive(path='/workspace' + '/' + dir + '/' + filename)
-    file_obj = BytesIO()
-    for i in strm:
-        file_obj.write(i)
-    file_obj.seek(0)
-    tar = tarfile.open(mode='r', fileobj=file_obj)
-    text = tar.extractfile(os.path.basename(filename))
-    tar.close()
-    q = text.read()
-    return q
+    try:
+        data = json.loads(request.data)
+        id = data['containerid']
+        dir = data['dir']
+        filename = data['filename']
+        client = docker.from_env()
+        containers = client.containers
+        container = containers.get(id)
+        strm, stat = container.get_archive(path='/workspace' + '/' + dir + '/' + filename)
+        file_obj = BytesIO()
+        for i in strm:
+            file_obj.write(i)
+        file_obj.seek(0)
+        tar = tarfile.open(mode='r', fileobj=file_obj)
+        text = tar.extractfile(os.path.basename(filename))
+        tar.close()
+        q = text.read()
+        return q, 200
+    except KeyError as e:
+        print(repr(e))
+        return repr(e), 400
+    except Exception as e:
+        print(str(e))
+        return str(e), 500
 
 @docker_bp.route("/downloadFile/", methods=['GET'])
 def docker_download_file():
-    # data = json.loads(request.data)
-    data = request.args
-    id = data['containerid']
-    dir = data['dir']
-    filename = data['filename']
-    client = docker.from_env()
-    containers = client.containers
-    container = containers.get(id)
-    strm, stat = container.get_archive(path='/workspace' + '/' + dir + '/' + filename)
-    file_obj = BytesIO()
-    for i in strm:
-        file_obj.write(i)
-    file_obj.seek(0)
-    tar = tarfile.open(mode='r', fileobj=file_obj)
-    text = tar.extractfile(os.path.basename(filename))
-    q = text.read()
-    tar.close()
+    try:
+        data = request.args
+        id = data['containerid']
+        dir = data['dir']
+        filename = data['filename']
+        client = docker.from_env()
+        containers = client.containers
+        container = containers.get(id)
+        strm, stat = container.get_archive(path='/workspace' + '/' + dir + '/' + filename)
+        file_obj = BytesIO()
+        for i in strm:
+            file_obj.write(i)
+        file_obj.seek(0)
+        tar = tarfile.open(mode='r', fileobj=file_obj)
+        text = tar.extractfile(os.path.basename(filename))
+        q = text.read()
+        tar.close()
 
-    filedir = TEMPFILES_DIR + '/' + str(uuid.uuid4())
-    os.makedirs(filedir)
+        filedir = TEMPFILES_DIR + '/' + str(uuid.uuid4())
+        os.makedirs(filedir)
 
-    with open(filedir +'/' + filename,"wb") as f:
-            f.write(q)
+        with open(filedir +'/' + filename,"wb") as f:
+                f.write(q)
 
-    response = make_response(send_from_directory(filedir, filename, as_attachment=True))
-    shutil.rmtree(filedir)
-    return response
+        response = make_response(send_from_directory(filedir, filename, as_attachment=True))
+        shutil.rmtree(filedir)
+        return response
+    except KeyError as e:
+        print(repr(e))
+        return repr(e), 400
 
 @docker_bp.route("/downloadFolder/", methods=['GET'])
 def docker_download_folder():
-    # data = json.loads(request.data)
-    data = request.args
-    id = data['containerid']
-    dir = data['dir']
-    client = docker.from_env()
-    containers = client.containers
-    container = containers.get(id)
-    strm, stat = container.get_archive(path='/workspace')
-    filedir = TEMPFILES_DIR + '/' + str(uuid.uuid4())
-    os.makedirs(filedir)
-    project_name = id
-    return_name = filedir + '/' + project_name
-    with open(return_name + '.tar',"wb") as f:
-        for i in strm:
-            f.write(i)
-    response = make_response(send_from_directory(filedir, project_name + '.tar', as_attachment=True))
-    shutil.rmtree(filedir)
-    return response
+    try:
+        data = request.args
+        id = data['containerid']
+        dir = data['dir']
+        client = docker.from_env()
+        containers = client.containers
+        container = containers.get(id)
+        strm, stat = container.get_archive(path='/workspace')
+        filedir = TEMPFILES_DIR + '/' + str(uuid.uuid4())
+        os.makedirs(filedir)
+        project_name = id
+        return_name = filedir + '/' + project_name
+        with open(return_name + '.tar',"wb") as f:
+            for i in strm:
+                f.write(i)
+        response = make_response(send_from_directory(filedir, project_name + '.tar', as_attachment=True))
+        shutil.rmtree(filedir)
+        return response
+    except KeyError as e:
+        print(repr(e))
+        return repr(e), 400
 
 @docker_bp.route("/createFolder/", methods=['POST'])
 def docker_create_folder():
