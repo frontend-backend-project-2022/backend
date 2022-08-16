@@ -15,10 +15,6 @@ def database_index():
     sql.connect(DB_DIR)
     return "Database Index"
 
-@database_bp.route("/test")
-def test():
-    return redirect(url_for('database.database_index'))
-
 @database_bp.route("/init/", methods=['POST'])
 def db_init():
     conn = sql.connect(DB_DIR)
@@ -161,33 +157,49 @@ def db_deleteuser(name, pw): # delete from db: True for successful, False for fa
 
 @database_bp.route("/createProject/", methods=['POST'])
 def db_createProject():
-    name = session['username']
-    data = json.loads(request.data)
-    projectname = data['projectname']
-    language = data['language']
-    version = data['version']
-    
-    res = db_insertcontainer(name, projectname, language, version)
-    if res:
-        return str(res), 200
-    return "failed", 500
+    try:
+        name = session['username']
+        data = json.loads(request.data)
+        projectname = data['projectname']
+        language = data['language']
+        version = data['version']
+        
+        res = db_insertcontainer(name, projectname, language, version)
+        if res:
+            return str(res), 200
+        return "failed", 500
+    except KeyError as e:
+        if repr(e) == "KeyError('username')":
+            print(repr(e) + 'during creating project')
+            return 'unauthorized', 401
+        else:
+            print(repr(e) + 'during creating project')
+            return 'KerError', 400
 
 @database_bp.route("/getAllProjects/", methods=['GET'])
 def db_getAllProjects():
-    name = session['username']
-    result = db_selectContainerByUser(name)
-    if result is not None:
-        return_list = []
-        for i in result:
-            temp = dict()
-            temp['projectname'] = i[0]
-            temp['containerid'] = i[1]
-            temp['language'] = i[2]
-            temp['version'] = i[3]
-            temp['time'] = i[4]
-            return_list.append(temp)
-        return jsonify(return_list), 200
-    return "failed", 500
+    try:
+        name = session['username']
+        result = db_selectContainerByUser(name)
+        if result is not None:
+            return_list = []
+            for i in result:
+                temp = dict()
+                temp['projectname'] = i[0]
+                temp['containerid'] = i[1]
+                temp['language'] = i[2]
+                temp['version'] = i[3]
+                temp['time'] = i[4]
+                return_list.append(temp)
+            return jsonify(return_list), 200
+        return "failed", 500
+    except KeyError as e:
+        if repr(e) == "KeyError('username')":
+            print(repr(e) + 'during geting all projects')
+            return 'unauthorized', 401
+        else:
+            print(repr(e) + 'during geting all projects')
+            return 'KerError', 400
 
 @database_bp.route("/getProject/<container_id>", methods=['GET'])
 def db_getProject(container_id):
