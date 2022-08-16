@@ -3,8 +3,6 @@ flask-socketio
 simple-websocket
 docker
 flask-login
-flask-wtf
-wtforms
 flask-sock
 python-language-server[all]
 pytest
