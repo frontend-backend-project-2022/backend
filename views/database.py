@@ -1,4 +1,4 @@
-from flask import Blueprint, Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Blueprint, Flask, request, session, jsonify
 import sqlite3 as sql
 from views.dockers import docker_connect,docker_rm
 from werkzeug.security import generate_password_hash, check_password_hash
