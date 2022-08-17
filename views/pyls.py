@@ -4,42 +4,42 @@ import threading
 import json
 from views.xterm import socketio
 from flask import request
+import os, signal
 
 sid2data = {}
 
-@socketio.on("python.connect")
+@socketio.on("connect", namespace="/pyls")
 def init_pyls():
-    # on connected:
-    language_server = subprocess.Popen(
-        ["pyls", "-v"],
+    print('pyls connect')
+    sid2data[request.sid] = {}
+    sid2data[request.sid]['language_server'] = subprocess.Popen(
+        ["pyls"],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE
     )
-    print('Python connect')
-
-    writer = streams.JsonRpcStreamWriter(language_server.stdin)
-    reader = streams.JsonRpcStreamReader(language_server.stdout)
-
+    sid2data[request.sid]['reader'] = streams.JsonRpcStreamReader(sid2data[request.sid]['language_server'].stdout)
+    sid2data[request.sid]['writer'] = streams.JsonRpcStreamWriter(sid2data[request.sid]['language_server'].stdin)
     def consume(reader, sid):
-        reader.listen(lambda msg: socketio.emit("python.send", json.dumps(msg), to=sid))
-    consume_thread = threading.Thread(target=consume, args=(reader, request.sid))
+        reader.listen(lambda msg: socketio.emit("send", json.dumps(msg), to=sid, namespace="/pyls"))
+    consume_thread = threading.Thread(target=consume, args=(sid2data[request.sid]['reader'], request.sid))
     consume_thread.daemon = True
     consume_thread.start()
+    print('pyls connect finished.')
 
-    sid2data[request.sid] = {
-        'language_server': language_server,
-        'reader': reader,
-        'writer': writer
-    }
 
-@socketio.on("python.receive")
+@socketio.on("receive", namespace="/pyls")
 def receive_message(msg):
-    print(msg)
+    while request.sid not in sid2data:
+        pass
     sid2data[request.sid]['writer'].write(json.loads(msg))
 
-@socketio.on("python.disconnect")
+
+@socketio.on("disconnect", namespace="/pyls")
 def disconnect_pyls():
-    pyls_resource = sid2data[request.sid]
+    pyls_resource = sid2data.pop(request.sid)
     pyls_resource['language_server'].terminate()
-    pyls_resource['reader'].close()
-    pyls_resource['writer'].close()
+
+
+@socketio.on_error('/pyls')
+def error_handler(e):
+    print('Error:', e)
