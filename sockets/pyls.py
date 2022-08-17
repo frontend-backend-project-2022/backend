@@ -2,7 +2,7 @@ from pyls_jsonrpc import streams
 import subprocess
 import threading
 import json
-from views.xterm import socketio
+from sockets import socketio
 from flask import request
 import os, signal
 

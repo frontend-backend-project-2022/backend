@@ -4,9 +4,7 @@ import re
 import os
 import json
 from flask import request, jsonify
-from flask_socketio import SocketIO
-
-socketio = SocketIO(cors_allowed_origins="*")
+from sockets import socketio
 
 class pdbData():
     def __init__(self, containerid, filepath, psocket):
@@ -61,7 +59,7 @@ def pdb_add_breakpoint(lineno):
         socketio.emit("response", pdb.response(),to=request.sid)
     else:
         print("error %d:%s"%(index, psocket.after.decode('utf-8')))
-        
+
 @socketio.on("delete")
 def pdb_delete_breakpoint(lineno):
     pdb = pdb_poll[request.sid]
@@ -109,7 +107,7 @@ def pdb_next_breakpoint():
         socketio.emit("response", pdb.response(),to=request.sid)
 
 @socketio.on("next")
-def pdb_next_line():    
+def pdb_next_line():
     pdb = pdb_poll[request.sid]
     if pdb.state == 0:
         return "Unstarted", 500
@@ -124,7 +122,7 @@ def pdb_next_line():
         print(res[s + 1:f - 2]) #lineno
         pdb.lineno = int(res[s + 1 : f - 2])
         socketio.emit("response", pdb.response(messageType="stdout",message=console),to=request.sid)
-        
+
 @socketio.on("exit")
 def pdb_exit():
     pdb = pdb_poll[request.sid]

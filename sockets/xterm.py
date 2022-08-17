@@ -1,5 +1,5 @@
 # xterm.js <=> socketio
-from flask_socketio import SocketIO
+from sockets import socketio
 from views.dockers import docker_connect,docker_exec_bash
 import pty
 import select
@@ -18,7 +18,7 @@ class xtermData():
 
 socket_poll = dict()
 
-socketio = SocketIO(cors_allowed_origins="*")
+
 
 def send_worker(sid):
     terminal = socket_poll[sid].terminal
