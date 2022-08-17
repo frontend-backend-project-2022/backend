@@ -26,7 +26,7 @@ def docker_index():
 def docker_connect(name=None, language=None, version=None):
     client = docker.from_env()
     containers = client.containers
-    
+
     try: #existing
         container = containers.get(name)
     except:

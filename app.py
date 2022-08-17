@@ -14,8 +14,9 @@ app.config["SECRET_KEY"] = "secret!qwq"
 CORS(app, supports_credentials=True)
 
 # python language server: websocket
-from views.pyls import sock
-sock.init_app(app)
+# from views.pyls import sock
+# sock.init_app(app)
+import views.pyls
 
 # xterm.js
 from views.xterm import socketio
