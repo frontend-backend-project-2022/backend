@@ -5,9 +5,6 @@ from views.database import *
 from views.login import login_bp
 
 from sockets import socketio
-import sockets.debugger
-import sockets.pyls
-import sockets.xterm
 
 app = Flask(__name__)
 app.register_blueprint(docker_bp, url_prefix="/docker")
