@@ -234,6 +234,7 @@ def test_dependencies_manage(client, auth):
         client.delete('/database/deleteProject/'+ containerid)
 
         containerid = client.post('/database/createProject/', json=nodejs_project_data).data.decode()
+        addNodejsPackage_data['containerid'] = containerid
 
         response = client.post('/docker/addNodejsPackage/', json=addNodejsPackage_data)
         assert '201' in str(response)
