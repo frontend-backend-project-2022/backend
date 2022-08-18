@@ -150,7 +150,8 @@ def test_file(client, auth):
         assert '201' in str(response)
 
         response = client.get('/docker/getdir/%s' % containerid)
-        assert '{"hsu1023": {"folder": {"123.txt": ""}}}' == response.data.decode()
+        print(response.data.decode())
+        assert '{"hsu1023": {"folder": {"123.txt": ""}}, "main.py": ""}' == response.data.decode()
 
         response = client.get('/docker/downloadFolder/', query_string = downloadFolder_data)
         with open("download.tar", mode='w') as f:
@@ -222,10 +223,6 @@ def test_dependencies_manage(client, auth):
         response = client.get('/docker/getPipList/', query_string=getPipList_data)
         assert '200' in str(response)
 
-        #response = client.post('/docker/addPythonPackage/', json=addPythonPackage_data_1)
-        #assert '201' in str(response)
-        #response = client.delete('/docker/deletePythonPackage/', json=addPythonPackage_data_1)
-        #assert '200' in str(response)
         response = client.post('/docker/addPythonPackage/', json=addPythonPackage_data_2)
         assert '201' in str(response)
         response = client.delete('/docker/deletePythonPackage/', json=addPythonPackage_data_2)
