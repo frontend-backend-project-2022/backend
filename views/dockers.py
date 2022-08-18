@@ -39,13 +39,13 @@ def docker_connect(name=None, language=None, version=None):
                     s, f = re.search('3.\d+', version).span()
                     img = "web-ide/python:%s"%version[s:f]
             elif language == 'C/C++':
-                if version in ['gcc 8.3','clang 14']
+                if version in ['gcc 8.3','clang 14']:
                     if version[0]=='g':
                         img = "web-ide/gcc:8.3"
                     else:
                         img = 'web-ide/clang:14'
             elif language == 'node':
-                if version in ['node 16.17','node 18.7']
+                if version in ['node 16.17','node 18.7']:
                     s, f = re.search('1\d.\d+', version).span()
                     img = "web-ide/node:%s"%version[s:f]
         print(img)
