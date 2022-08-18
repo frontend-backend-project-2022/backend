@@ -29,7 +29,7 @@ def pdb_connect(container_id, filepath):
         containers = client.containers
         container = containers.get(container_id)
         _, sock = container.exec_run("/bin/bash", socket=True, stdin=True, tty=True)
-        psocket = pexpect.fdpexpect.fdspawn(sock.fileno(),timeout=10)
+        psocket = pexpect.fdpexpect.fdspawn(sock.fileno(),timeout=1)
 
         psocket.expect("#")
         psocket.sendline("python -m pdb %s"%filepath)

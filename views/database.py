@@ -70,6 +70,7 @@ def db_insertuser(name, pw):
 
 def db_insertcontainer(name, projectname='',language='',version=0):
     container_id = docker_connect(language=language, version=version)
+    print(language,version)
     try:
         userid = db_selectUserByName(name)[0]
         conn = sql.connect(DB_DIR)
@@ -157,13 +158,14 @@ def db_deleteuser(name, pw): # delete from db: True for successful, False for fa
 
 @database_bp.route("/createProject/", methods=['POST'])
 def db_createProject():
+    
     try:
         name = session['username']
         data = json.loads(request.data)
+        print(data)
         projectname = data['projectname']
         language = data['language']
         version = data['version']
-        
         res = db_insertcontainer(name, projectname, language, version)
         if res:
             return str(res), 201

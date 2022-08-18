@@ -32,10 +32,11 @@ def docker_connect(name=None, language=None, version=None):
         container.start()
     except:
         img = 'ubuntu'
+        print(img,language,version)
         if language and version:
             if language == 'Python':
                 s, f = re.search('3.\d+', version).span()
-                img = "python:%s"%version[s:f]
+                img = "web-ide/python:%s"%version[s:f]
             elif language == 'C/C++':
                 img = "gcc:8.3"
         print(img)
@@ -43,8 +44,8 @@ def docker_connect(name=None, language=None, version=None):
         if language:
             if language == 'Python':
                 cmd = '/bin/sh -c "echo print\(\"hello world\"\) > main.py"'
-                # res = container.exec_run(cmd=cmd, stream=False, demux=False)
-                # print(res)
+                res = container.exec_run(cmd=cmd, stream=False, demux=False)
+                print(res)
                 
     return container.id
 
