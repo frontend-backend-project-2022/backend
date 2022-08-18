@@ -1,4 +1,4 @@
-FROM python:3.8
+FROM silkeh/clang:14
 
 WORKDIR /workspace
 

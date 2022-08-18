@@ -35,10 +35,19 @@ def docker_connect(name=None, language=None, version=None):
         print(img,language,version)
         if language and version:
             if language == 'Python':
-                s, f = re.search('3.\d+', version).span()
-                img = "web-ide/python:%s"%version[s:f]
+                if version in ['Python 3.7', 'Python 3.8', 'Python 3.9']:
+                    s, f = re.search('3.\d+', version).span()
+                    img = "web-ide/python:%s"%version[s:f]
             elif language == 'C/C++':
-                img = "gcc:8.3"
+                if version in ['gcc 8.3','clang 14']
+                    if version[0]=='g':
+                        img = "web-ide/gcc:8.3"
+                    else:
+                        img = 'web-ide/clang:14'
+            elif language == 'node':
+                if version in ['node 16.17','node 18.7']
+                    s, f = re.search('1\d.\d+', version).span()
+                    img = "web-ide/node:%s"%version[s:f]
         print(img)
         container = containers.run(img, name=name,tty=True, detach=True,command="bash", working_dir='/workspace')
         container.kill()
