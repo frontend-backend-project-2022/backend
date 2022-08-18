@@ -47,7 +47,12 @@
 
 - 08/16：添加了docker的镜像，最好提前在本地下载gcc:8.3/python:3.8/python3.9/python3.10的镜像
 
+- 08/19：C/C++ 语言服务器
+  
+  - 安装：`sudo apt-get update && sudo apt-get install clangd`
+
 - 错误信息：
+  
   - login：
     - check_logged_in：200 if logged in else 401
     - login：200 if success else 401
@@ -88,4 +93,3 @@
       - 成功：200
     - docker_create_file、docker_create_folder：201 if success else 500
     - docker_delete_file、docker_delete_folder、docker_rename_file：200 if success else 500
-    
