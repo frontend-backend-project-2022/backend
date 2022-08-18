@@ -29,7 +29,7 @@ def send_worker(sid):
             output_from_docker = os.read(pty, 1024)
             socketio.emit("response", output_from_docker.decode(),to=sid, namespace="/xterm")
 
-@socketio.on("connect", namespace="/xterm")
+@socketio.on("start", namespace="/xterm")
 def init_terminal(containerid):
     socket_poll[request.sid] = xtermData(containerid)
     socketio.start_background_task(send_worker,request.sid)
