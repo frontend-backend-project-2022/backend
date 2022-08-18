@@ -1,6 +1,6 @@
 # xterm.js <=> socketio
 from sockets import socketio
-from views.dockers import docker_connect,docker_exec_bash
+from views.dockers import docker_connect, docker_exec_bash, docker_close
 import pty
 import select
 import os
@@ -27,17 +27,18 @@ def send_worker(sid):
         r, _, _ = select.select([pty], [], [])
         if pty in r:
             output_from_docker = os.read(pty, 1024)
-            socketio.emit("response", output_from_docker.decode(),to=sid)
+            socketio.emit("response", output_from_docker.decode(),to=sid, namespace="/xterm")
 
-@socketio.on("connectSignal")
+@socketio.on("connect", namespace="/xterm")
 def init_terminal(containerid):
     socket_poll[request.sid] = xtermData(containerid)
     socketio.start_background_task(send_worker,request.sid)
 
-@socketio.on("message")
+@socketio.on("message", namespace="/xterm")
 def handle_message(data):
     os.write(socket_poll[request.sid].pty, data.encode())
 
-@socketio.on("disconnectSignal")
+@socketio.on("disconnect", namespace="/xterm")
 def tear_terminal(containerid):
+    docker_close(containerid)
     del socket_poll[request.sid]

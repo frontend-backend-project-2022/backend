@@ -29,6 +29,7 @@ def docker_connect(name=None, language=None, version=None):
 
     try: #existing
         container = containers.get(name)
+        container.start()
     except:
         img = 'ubuntu'
         if language and version:
@@ -39,7 +40,27 @@ def docker_connect(name=None, language=None, version=None):
                 img = "gcc:8.3"
         print(img)
         container = containers.run(img, name=name,tty=True, detach=True,command="bash", working_dir='/workspace')
+        if language:
+            if language == 'Python':
+                cmd = '/bin/sh -c "echo print\(\"hello world\"\) > main.py"'
+                # res = container.exec_run(cmd=cmd, stream=False, demux=False)
+                # print(res)
+                
     return container.id
+
+def docker_close(id):
+    client = docker.from_env()
+    containers = client.containers
+    try: #existing
+        container = containers.get(id)
+        container.kill()
+        return True
+    except docker.errors.NotFound as e:
+        print("docker close error:",e)
+    except docker.errors.APIError as e:
+        print("docker close error:",e)
+    return False
+
 
 def docker_rm(id):
     client = docker.from_env()
@@ -116,16 +137,13 @@ def docker_exec_bash(name, cmd):
 def docker_getdir(containerid):
     try:
         res = docker_exec_bash(containerid, 'ls -RF')
-        # print(res)
         dir_list = res.split('\n\n')
         dic_temp = {}
         dic=[]
-        # print(dir_list)
         for item in dir_list:
             dir_part, content_part = item.strip().split(':')
             content_list = content_part.strip().split('\n')
             dic_temp[dir_part] = content_list
-        # print(dic_temp)
         for dir_part, content_part in dic_temp.items():
             for content in content_part:
                 if len(content) > 1 and content[-1] != '/':
@@ -136,7 +154,6 @@ def docker_getdir(containerid):
                     dic.append((dir_part, content[:-1]))
 
         dic.sort(key=lambda elem : elem[0].count('/'), reverse= True)
-        # print(dic)
         dic2 = dict()
         for directory, content in dic:
             if content == '':
@@ -146,7 +163,6 @@ def docker_getdir(containerid):
             else:
                 dic2[directory] = dic2.get(directory, dict())
                 dic2[directory][content] = dic2[directory + '/' + content]
-        # print(dic2['.'])
         return json.dumps(dic2['.']), 200
     except Exception as e:
         print(repr(e) + "during docker_getdir()")
@@ -199,22 +215,18 @@ def docker_upload_content():
         container_dir = data['dir']
         container_id = data['containerid']
         content = data['content']
-        print("k")
         filedir = TEMPFILES_DIR + '/' + str(uuid.uuid4())
         os.makedirs(filedir)
 
-        print("k")
         with open(filedir + '/' + filename, 'w') as f:
             f.write(content)
 
-        print("k")
         with tarfile.open(filedir + '/' + filename+'.tar', 'w') as tar:
             try:
                 tar.add(filedir + '/' + filename, arcname=container_dir + '/' + filename)
             finally:
                 tar.close()
 
-        print("k")
         client = docker.from_env()
         container = client.containers.get(container_id)
         with open(filedir + '/' + filename+'.tar', 'rb') as fd:
