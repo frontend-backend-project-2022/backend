@@ -143,7 +143,7 @@ def test_file(client, auth):
         auth.login()
         client.post('/login/init/')
         containerid = client.post('/database/createProject/', json = project_data).data.decode()
-        put_data['containerid'] = get_data['containerid'] = downloadFolder_data['containerid']= downloadFile_data['containerid'] = upload_content['containerid'] = renameFile_data['containerid'] = createFile_data['containerid'] = createFolder_data['containerid'] = containerid
+        put_data['containerid'] = get_data['containerid'] = downloadFolder_data['containerid'] = downloadFile_data['containerid'] = upload_content['containerid'] = renameFile_data['containerid'] = createFile_data['containerid'] = createFolder_data['containerid'] = containerid
 
         response = client.post('/docker/uploadFile/', data=put_data,
                       content_type='multipart/form-data')

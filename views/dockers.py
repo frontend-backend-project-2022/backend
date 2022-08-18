@@ -1,10 +1,8 @@
-from flask import Blueprint, jsonify, request, send_file, make_response, send_from_directory
+from flask import Blueprint, request, make_response, send_from_directory
 import docker
 import json
-# from views.database import db_selectContainerById
 import tarfile
-import time
-from io import BytesIO, StringIO
+from io import BytesIO
 import os
 import uuid
 import shutil
@@ -112,29 +110,6 @@ def docker_exec_bash(name, cmd):
     except Exception as e:
         print("exec bash error:",e)
         return None
-    #     _, socket = container.exec_run('/bin/sh', stdin=True, socket=True)
-    # except errors.NotFound as e:
-    #     print(e)
-    #     return None
-    # sock = socket._sock
-    # if timeout > 0:
-    #     sock.settimeout(timeout)
-    # sock.sendall(bytes(cmd+'\n',encoding='utf8'))
-    # # unknown_byte=socket._sock.recv(docker.constants.STREAM_HEADER_SIZE_BYTES)
-    # data = b''
-    # try:
-    #     unknown_byte=socket._sock.recv(docker.constants.STREAM_HEADER_SIZE_BYTES)
-    #     buffer_size = 4096 # 4 KiB
-    #     while True:
-    #         part = socket._sock.recv(buffer_size)
-    #         data += part
-    #         if len(part) < buffer_size:
-    #         # either 0 or end of data
-    #             break
-    #     return data.decode("utf8")
-    # except Exception as e:
-    #     print(e)
-    #     return None
 
 
 # recursively print directorys
@@ -442,46 +417,59 @@ def docker_get_pip_list():
 
 @docker_bp.route("/addPythonPackage/", methods=['POST'])
 def docker_add_python_package():
-    data = json.loads(request.data)
-    id = data['containerid']
-    package = data['package']
-    version = data['version']
-    if version:
-        if docker_exec_bash(id, f'pip install {package}=={version}') is not None:
-            return 'success', 201
-    else:
-        if docker_exec_bash(id, f'pip install {package}') is not None:
-            return 'success', 201
-    return 'failed', 500
+    try:
+        data = json.loads(request.data)
+        id = data['containerid']
+        package = data['package']
+        version = data['version']
+        if version:
+            if docker_exec_bash(id, f'pip install {package}=={version}') is not None:
+                return 'success', 201
+        else:
+            if docker_exec_bash(id, f'pip install {package}') is not None:
+                return 'success', 201
+    except Exception as e:
+        print(e)
+        return str(e), 500
 
 @docker_bp.route("/deletePythonPackage/", methods=['DELETE'])
 def docker_delete_python_package():
-    data = json.loads(request.data)
-    id = data['containerid']
-    package = data['package']
-    if docker_exec_bash(id, f'pip uninstall -y {package}') is not None:
-        return 'success', 200
-    return 'failed', 500
+    try:
+        data = json.loads(request.data)
+        id = data['containerid']
+        package = data['package']
+        if docker_exec_bash(id, f'pip uninstall -y {package}') is not None:
+            return 'success', 200
+    except Exception as e:
+        print(e)
+        return str(e), 500
 
 @docker_bp.route("/addNodejsPackage/", methods=['POST'])
 def docker_add_nodejs_package():
-    data = json.loads(request.data)
-    id = data['containerid']
-    package = data['package']
-    version = data['version']
-    if version:
-        if docker_exec_bash(id, f'yarn add {package}@{version}') is not None:
-            return 'success', 201
-    else:
-        if docker_exec_bash(id, f'yarn add {package}') is not None:
-            return 'success', 201
-    return 'failed', 500
+    try:
+        data = json.loads(request.data)
+        id = data['containerid']
+        package = data['package']
+        version = data['version']
+        if version:
+            if docker_exec_bash(id, f'yarn add {package}@{version}') is not None:
+                return 'success', 201
+        else:
+            if docker_exec_bash(id, f'yarn add {package}') is not None:
+                return 'success', 201
+    except Exception as e:
+        print(e)
+        return str(e), 500
 
 @docker_bp.route("/deleteNodejsPackage/", methods=['DELETE'])
 def docker_delete_nodejs_package():
-    data = json.loads(request.data)
-    id = data['containerid']
-    package = data['package']
-    if docker_exec_bash(id, f'yarn remove {package}') is not None:
-        return 'success', 200
-    return 'failed', 500
+    try:
+        data = json.loads(request.data)
+        id = data['containerid']
+        package = data['package']
+        if docker_exec_bash(id, f'yarn remove {package}') is not None:
+            return 'success', 200
+    except Exception as e:
+        print(e)
+        return str(e), 500
+

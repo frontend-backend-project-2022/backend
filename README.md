@@ -93,3 +93,6 @@
       - 成功：200
     - docker_create_file、docker_create_folder：201 if success else 500
     - docker_delete_file、docker_delete_folder、docker_rename_file：200 if success else 500
+    - docker_get_pip_list: 200 if success else 500
+    - docker_add_python_package、docker_add_nodejs_package: 201 if success else 500
+    - docker_delete_python_package、docker_delete_nodejs_package：200 if success else 500
