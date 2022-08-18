@@ -41,12 +41,7 @@ def docker_connect(name=None, language=None, version=None):
                 img = "gcc:8.3"
         print(img)
         container = containers.run(img, name=name,tty=True, detach=True,command="bash", working_dir='/workspace')
-        if language:
-            if language == 'Python':
-                cmd = '/bin/sh -c "echo print\(\"hello world\"\) > main.py"'
-                res = container.exec_run(cmd=cmd, stream=False, demux=False)
-                print(res)
-                
+        container.kill()
     return container.id
 
 def docker_close(id):
