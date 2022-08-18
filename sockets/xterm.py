@@ -11,6 +11,7 @@ from flask import request
 class xtermData():
     def __init__(self, containerid):
         container_id = docker_connect(containerid)
+        self.container_id = container_id
         self.pty, tty = pty.openpty()
         self.terminal = subprocess.Popen(
             ["docker", "exec", "-it", container_id, "/bin/bash"], stdin=tty, stdout=tty, stderr=tty
@@ -39,6 +40,8 @@ def handle_message(data):
     os.write(socket_poll[request.sid].pty, data.encode())
 
 @socketio.on("disconnect", namespace="/xterm")
-def tear_terminal(containerid):
-    docker_close(containerid)
+def tear_terminal():
+    containerid = socket_poll[request.sid].container_id
+    if not docker_close(containerid):
+        print('Error: close container failed.')
     del socket_poll[request.sid]
