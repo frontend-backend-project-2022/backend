@@ -420,3 +420,68 @@ def docker_rename_file():
     if docker_exec_bash(id, f"cd {dir} && mv {filename} {newname}") is not None:
         return "success", 200
     return "failed", 500
+
+@docker_bp.route("/getPipList/")
+def docker_get_pip_list():
+    try:
+        data = request.args
+        id = data['containerid']
+        res = docker_exec_bash(id, "pip list")
+        pip_list = res.split('\n')
+        pip_list = pip_list[2:-1]
+        pip_dic = {}
+        for item in pip_list:
+            item_list = item.split(' ')
+            while '' in item_list:
+                item_list.remove('')
+            pip_dic[item_list[0]] = item_list[1]
+        return json.dumps(pip_dic), 200
+    except Exception as e:
+        print(str(e))
+        return str(e), 500
+
+@docker_bp.route("/addPythonPackage/", methods=['POST'])
+def docker_add_python_package():
+    data = json.loads(request.data)
+    id = data['containerid']
+    package = data['package']
+    version = data['version']
+    if version:
+        if docker_exec_bash(id, f'pip install {package}=={version}') is not None:
+            return 'success', 201
+    else:
+        if docker_exec_bash(id, f'pip install {package}') is not None:
+            return 'success', 201
+    return 'failed', 500
+
+@docker_bp.route("/deletePythonPackage/", methods=['DELETE'])
+def docker_delete_python_package():
+    data = json.loads(request.data)
+    id = data['containerid']
+    package = data['package']
+    if docker_exec_bash(id, f'pip uninstall -y {package}') is not None:
+        return 'success', 200
+    return 'failed', 500
+
+@docker_bp.route("/addNodejsPackage/", methods=['POST'])
+def docker_add_nodejs_package():
+    data = json.loads(request.data)
+    id = data['containerid']
+    package = data['package']
+    version = data['version']
+    if version:
+        if docker_exec_bash(id, f'yarn add {package}@{version}') is not None:
+            return 'success', 201
+    else:
+        if docker_exec_bash(id, f'yarn add {package}') is not None:
+            return 'success', 201
+    return 'failed', 500
+
+@docker_bp.route("/deleteNodejsPackage/", methods=['DELETE'])
+def docker_delete_nodejs_package():
+    data = json.loads(request.data)
+    id = data['containerid']
+    package = data['package']
+    if docker_exec_bash(id, f'yarn remove {package}') is not None:
+        return 'success', 200
+    return 'failed', 500
