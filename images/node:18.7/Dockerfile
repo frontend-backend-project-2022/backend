@@ -1,7 +1,7 @@
 FROM node:18.7
 
 WORKDIR /workspace
-
-RUN echo "console.log(\"Hello World!\");" > /workspace/main.js
+RUN yarn init -y
+RUN echo "console.log(\"Hello World!\");" > /workspace/index.js
 
 CMD /bin/bash

@@ -396,11 +396,10 @@ def docker_rename_file():
         return "success", 200
     return "failed", 500
 
-@docker_bp.route("/getPipList/")
-def docker_get_pip_list():
+@docker_bp.route("/getPipList/<containerid>/")
+def docker_get_pip_list(containerid):
     try:
-        data = request.args
-        id = data['containerid']
+        id = containerid
         res = docker_exec_bash(id, "pip list")
         pip_list = res.split('\n')
         pip_list = pip_list[2:-1]
@@ -444,6 +443,17 @@ def docker_delete_python_package():
         print(e)
         return str(e), 500
 
+
+@docker_bp.get("/getNodejsList/<containerid>/")
+def docker_get_nodejs_list(containerid):
+    try:
+        id = containerid
+        res = docker_exec_bash(id, "cat package.json")
+        return json.loads(res), 200
+    except Exception as e:
+        print(str(e))
+        return str(e), 500
+
 @docker_bp.route("/addNodejsPackage/", methods=['POST'])
 def docker_add_nodejs_package():
     try:
@@ -472,4 +482,3 @@ def docker_delete_nodejs_package():
     except Exception as e:
         print(e)
         return str(e), 500
-
