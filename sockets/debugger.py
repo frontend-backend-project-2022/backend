@@ -1,5 +1,6 @@
 import docker
 import pexpect
+import pexpect.fdpexpect
 import re
 import os
 import json
@@ -21,11 +22,12 @@ class pdbData():
 
     def response(self, messageType="none", message = ""):
         # 返回的bp里-1代表已删除
-        bp_ = map(lambda x: x - 1, [{i for i in self.bp} - {-1}])
+        bp_ = [line_number - 1 for line_number in self.bp]
         dic = {'bp':bp_, 'lineno':self.lineno - 1,'state':self.state, 'messageType':messageType, 'message':message}
-        return jsonify(dic)
+        return dic
 
 pdb_poll = dict()
+raw_sock_poll = dict()
 
 def pdb_stdout(runsocket):
     while True:
@@ -35,18 +37,18 @@ def pdb_stdout(runsocket):
             socketio.emit('stdout', runsocket.before.decode('utf-8'))
         elif index == 1:
             break
-            
+
 @socketio.on("start", namespace="/debugger")
 def pdb_connect(container_id, filepath):
     try:
         client = docker.from_env()
         containers = client.containers
         container = containers.get(container_id)
-        _, sock = container.exec_run("/bin/bash", socket=True, stdin=True, tty=True)
-        pdbsocket = pexpect.fdpexpect.fdspawn(sock.fileno(),timeout=1)
+        _, pdb_raw_sock = container.exec_run("/bin/bash", socket=True, stdin=True, tty=True)
+        pdbsocket = pexpect.fdpexpect.fdspawn(pdb_raw_sock.fileno(),timeout=1)
 
-        _, sock = container.exec_run("/bin/bash", socket=True, stdin=True, tty=True)
-        runsocket = pexpect.fdpexpect.fdspawn(sock.fileno(),timeout=1)
+        _, run_raw_sock = container.exec_run("/bin/bash", socket=True, stdin=True, tty=True)
+        runsocket = pexpect.fdpexpect.fdspawn(run_raw_sock.fileno(),timeout=1)
 
         runsocket.expect("#")
         pdbsocket.expect("#")
@@ -56,7 +58,7 @@ def pdb_connect(container_id, filepath):
 
         runsocket.sendline('python .run')
         index = runsocket.expect(['waiting for connection ...',])
-        
+
         if index == 0:
             res = runsocket.before.decode('utf-8')
             s,f = re.search('\d+\.\d+\.\d+\.\d+:\d+',res).span()
@@ -75,26 +77,42 @@ def pdb_connect(container_id, filepath):
             print("successfully connected")
             pdb = pdbData(container_id, filepath, pdbsocket, runsocket, host, post)
             pdb_poll[request.sid] = pdb
-            
+            raw_sock_poll[request.sid] = {
+                'pdb': pdb_raw_sock,
+                'run': run_raw_sock
+            }
+
+            socketio.emit("initFinished", to=request.sid, namespace="/debugger")
+
     except Exception as e:
         print("error", e)
 
 
 @socketio.on("add", namespace="/debugger")
 def pdb_add_breakpoint(lineno):
+    print(f'add breakpoint {lineno}')
     lineno += 1
     pdb = pdb_poll[request.sid]
     if pdb.state == 0:
         socketio.emit("error", "Unstarted")
     pdbsocket = pdb.pdbsocket
     pdbsocket.sendline("b %d"%lineno)
-    index = pdbsocket.expect(["Breakpoint \d+ at .*:%d"%lineno,"End of file","\*\*\*"])
+    index = pdbsocket.expect(["Breakpoint \d+ at .*:%d"%lineno,"End of file",r"\*\*\*"])
+
     if index == 0:
         print("successfully added line %d"%lineno)
         pdb.bp.append(lineno)
         socketio.emit("response", pdb.response(),to=request.sid, namespace="/debugger")
+    elif index == 2:
+        # pdb print "*** Blank or comment" when breakpoint is not on code.
+        socketio.emit("response", pdb.response(),to=request.sid, namespace="/debugger")
     else:
         print("error %d:%s"%(index, pdbsocket.after.decode('utf-8')))
+
+@socketio.on("addList", namespace="/debugger")
+def pdb_add_breakpoint_list(linenoList):
+    for lineno in linenoList:
+        pdb_add_breakpoint(lineno)
 
 @socketio.on("delete", namespace="/debugger")
 def pdb_delete_breakpoint(lineno):
@@ -147,7 +165,7 @@ def pdb_next_line():
         index = pdbsocket.expect(["> .*\(\d+\)<module>()", pexpect.TIMEOUT])
         if not index:
             break
-            
+
     res = pdbsocket.after.decode('utf-8')
     s, f = re.search('\(\d+\)<', res).span()
     print("lineno:", res[s + 1 : f - 2]) #lineno
