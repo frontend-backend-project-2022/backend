@@ -216,3 +216,5 @@ def pdb_exit():
 @socketio.on("disconnect", namespace="/debugger")
 def pdb_disconnect():
     pdb_exit()
+
+# pdb_connect('258588', r'/workspace/test/test2.py')
