@@ -482,3 +482,9 @@ def docker_delete_nodejs_package():
     except Exception as e:
         print(e)
         return str(e), 500
+
+@docker_bp.post("/closeContainer/<containerid>/")
+def docker_close_container(containerid):
+    if not docker_close(containerid):
+        print('Error: close container failed.')
+    return 'success'

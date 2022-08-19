@@ -41,7 +41,6 @@ def handle_message(data):
 
 @socketio.on("disconnect", namespace="/xterm")
 def tear_terminal():
+    print('xterm disconnect')
     containerid = socket_poll[request.sid].container_id
-    if not docker_close(containerid):
-        print('Error: close container failed.')
     del socket_poll[request.sid]
