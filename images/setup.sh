@@ -1,3 +1,4 @@
+#!/bin/bash
 docker build . --file images/python:3.8/Dockerfile --tag web-ide/python:3.8
 docker build . --file images/python:3.9/Dockerfile --tag web-ide/python:3.9
 docker build . --file images/python:3.10/Dockerfile --tag web-ide/python:3.10

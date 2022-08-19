@@ -220,7 +220,7 @@ def test_dependencies_manage(client, auth):
         containerid = client.post('/database/createProject/', json=python_project_data).data.decode()
         getPipList_data['containerid'] = addPythonPackage_data_1['containerid'] = addPythonPackage_data_2['containerid'] = containerid
 
-        response = client.get('/docker/getPipList/', query_string=getPipList_data)
+        response = client.get('/docker/getPipList/%s'%containerid)
         assert '200' in str(response)
 
         response = client.post('/docker/addPythonPackage/', json=addPythonPackage_data_2)

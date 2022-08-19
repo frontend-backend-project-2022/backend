@@ -396,7 +396,7 @@ def docker_rename_file():
         return "success", 200
     return "failed", 500
 
-@docker_bp.route("/getPipList/<containerid>/")
+@docker_bp.route("/getPipList/<containerid>")
 def docker_get_pip_list(containerid):
     try:
         id = containerid
