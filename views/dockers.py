@@ -444,12 +444,24 @@ def docker_delete_python_package():
         return str(e), 500
 
 
-@docker_bp.get("/getNodejsList/<containerid>/")
+@docker_bp.route("/getNodejsList/<containerid>")
 def docker_get_nodejs_list(containerid):
     try:
         id = containerid
-        res = docker_exec_bash(id, "cat package.json")
-        return json.loads(res), 200
+        res = docker_exec_bash(id, "npm list --depth=0")
+        nodejs_list = res.split('\n')
+        nodejs_list = nodejs_list[1:-2]
+        nodejs_dic = {}
+        for item in nodejs_list:
+            print(item)
+            item = item[4:]
+            print(item)
+            if item == '(empty)':
+                continue
+            item_list = item.split('@')
+            print(item_list)
+            nodejs_dic[item_list[0]] = item_list[1]
+        return json.dumps(res), 200
     except Exception as e:
         print(str(e))
         return str(e), 500
