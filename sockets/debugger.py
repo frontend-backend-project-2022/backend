@@ -36,7 +36,7 @@ def pdb_stdout(runsocket):
         elif index == 1:
             break
             
-@socketio.on("connect", namespace="/debugger")
+@socketio.on("start", namespace="/debugger")
 def pdb_connect(container_id, filepath):
     try:
         client = docker.from_env()
