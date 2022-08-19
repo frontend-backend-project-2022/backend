@@ -97,7 +97,7 @@ def pdb_add_breakpoint(lineno):
         socketio.emit("error", "Unstarted")
     pdbsocket = pdb.pdbsocket
     pdbsocket.sendline("b %d"%lineno)
-    index = pdbsocket.expect(["Breakpoint \d+ at .*:%d"%lineno,"End of file",r"\*\*\*"])
+    index = pdbsocket.expect(["Breakpoint \d+ at .*:%d"%lineno,"End of file","\*\*\*"])
 
     if index == 0:
         print("successfully added line %d"%lineno)
