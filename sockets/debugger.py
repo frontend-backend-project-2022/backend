@@ -188,16 +188,8 @@ def pdb_getvalue(variables):
         variables_list.append({'name':i,'value':value,'type':typeof})
     socketio.emit("response", pdb.response(messageType="variables",message=variables_list),to=request.sid, namespace="/debugger")
 
-@socketio.on("check", namespace="/debugger")
+@socketio.on("stdin", namespace="/debugger")
 def pdb_stdin(message):
-    pdb = pdb_poll[request.sid]
-    if pdb.state == 0:
-        return "Unstarted", 500
-    runsocket = pdb.runsocket
-    runsocket.send(message)
-
-@socketio.on("check", namespace="/debugger")
-def pdb_stdout(message):
     pdb = pdb_poll[request.sid]
     if pdb.state == 0:
         return "Unstarted", 500
@@ -224,5 +216,3 @@ def pdb_exit():
 @socketio.on("disconnect", namespace="/debugger")
 def pdb_disconnect():
     pdb_exit()
-
-# pdb_connect('258588', r'/workspace/test/test2.py')
