@@ -4,7 +4,7 @@ WORKDIR /workspace
 
 RUN echo "print(\"hello world\")" > /workspace/main.py \
     && apt-get -y update \
-    && apt-get -y install telnet \
+    && apt-get -y install -f telnet \
     && pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple \
     && pip install remote_pdb 
 
