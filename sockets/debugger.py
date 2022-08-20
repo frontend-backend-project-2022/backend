@@ -7,6 +7,7 @@ import json
 from flask import request, jsonify
 import threading
 from sockets import socketio
+import select
 
 class pdbData():
     def __init__(self, containerid, filepath, pdbsocket, runsocket, host, post):
@@ -29,14 +30,15 @@ class pdbData():
 pdb_poll = dict()
 raw_sock_poll = dict()
 
-def pdb_stdout(runsocket):
+def pdb_stdout(runsocket, sid):
     while True:
-        index = runsocket.expect(['\n', pexpect.EOF, pexpect.TIMEOUT])
-        if index == 0:
-            print(runsocket.before)
-            socketio.emit('stdout', runsocket.before.decode('utf-8'))
-        elif index == 1:
-            break
+        output = runsocket.read(1).decode('utf-8')
+        if output == '':
+            # socketio.emit('stopped', to=sid, namespace="/debugger")
+            # break
+            pass
+        else:
+            socketio.emit('stdout', output, to=sid, namespace="/debugger")
 
 @socketio.on("start", namespace="/debugger")
 def pdb_connect(container_id, filepath):
@@ -45,10 +47,10 @@ def pdb_connect(container_id, filepath):
         containers = client.containers
         container = containers.get(container_id)
         _, pdb_raw_sock = container.exec_run("/bin/bash", socket=True, stdin=True, tty=True)
-        pdbsocket = pexpect.fdpexpect.fdspawn(pdb_raw_sock.fileno(),timeout=1)
+        pdbsocket = pexpect.fdpexpect.fdspawn(pdb_raw_sock.fileno(), timeout=2)
 
         _, run_raw_sock = container.exec_run("/bin/bash", socket=True, stdin=True, tty=True)
-        runsocket = pexpect.fdpexpect.fdspawn(run_raw_sock.fileno(),timeout=1)
+        runsocket = pexpect.fdpexpect.fdspawn(run_raw_sock.fileno())
 
         runsocket.expect("#")
         pdbsocket.expect("#")
@@ -71,8 +73,9 @@ def pdb_connect(container_id, filepath):
             index = runsocket.expect(["RemotePdb accepted connection \S+.",pexpect.TIMEOUT])
             if index:
                 raise Exception('timeout')
+            runsocket.send('')
 
-            thread = threading.Thread(target = pdb_stdout, args=(runsocket,))
+            thread = threading.Thread(target = pdb_stdout, args=(runsocket, request.sid))
             thread.start()
             print("successfully connected")
             pdb = pdbData(container_id, filepath, pdbsocket, runsocket, host, post)
