@@ -124,8 +124,11 @@ def pdb_next_breakpoint():
     pdbsocket = pdb.pdbsocket
     pdbsocket.sendline("c")
     while True:
-        index = pdbsocket.expect(["> .*\(\d+\)<module>()", pexpect.TIMEOUT])
-        if not index:
+        index = pdbsocket.expect(["> .*\(\d+\)<module>()", pexpect.EOF, pexpect.TIMEOUT])
+        if index == 0:
+            break
+        elif index == 1:
+            pdb_exit()
             break
 
     res = pdbsocket.after.decode('utf-8')
@@ -144,8 +147,11 @@ def pdb_next_line():
     pdbsocket = pdb.pdbsocket
     pdbsocket.sendline("n")
     while True:
-        index = pdbsocket.expect(["> .*\(\d+\)<module>()", pexpect.TIMEOUT])
-        if not index:
+        index = pdbsocket.expect(["> .*\(\d+\)<module>()", pexpect.EOF, pexpect.TIMEOUT])
+        if index == 0:
+            break
+        elif index == 1:
+            pdb_exit()
             break
             
     res = pdbsocket.after.decode('utf-8')
