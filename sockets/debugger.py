@@ -181,7 +181,6 @@ def pdb_next_line():
 
 @socketio.on("check", namespace="/debugger")
 def pdb_getvalue(variables):
-    variables = json.loads(variables)
     pdb = pdb_poll[request.sid]
     if pdb.state == 0:
         return "Unstarted", 500
@@ -196,18 +195,24 @@ def pdb_getvalue(variables):
             value = "\n".join(res.split('\r\n'))
         print(value)
 
+        message = None
         pdbsocket.sendline("p type(%s)"%i)
-        index = pdbsocket.expect(["<class .*>"])
+        index = pdbsocket.expect(["<class .*>", "\*\*\* NameError: name .* is not defined"])
         if index == 0:
             res = pdbsocket.after.decode('utf-8')
             typeof = res
 
-        if typeof == "<class 'int'>":
-            value = int(value)
-        elif typeof == "<class 'float'>":
-            value = int(value)
+            if typeof == "<class 'int'>":
+                value = int(value)
+            elif typeof == "<class 'float'>":
+                value = float(value)
+        else:
+            message = pdbsocket.after.decode('utf-8')
 
-        variables_list.append({'name':i,'value':value,'type':typeof})
+        if message is None:
+            message = f"{typeof}: {i} = {value}" # {'name':i,'value':value,'type':typeof}
+        variables_list.append(message)
+
     socketio.emit("response", pdb.response(messageType="variables",message=variables_list),to=request.sid, namespace="/debugger")
 
 @socketio.on("stdin", namespace="/debugger")
