@@ -42,5 +42,7 @@ def handle_message(data):
 @socketio.on("disconnect", namespace="/xterm")
 def tear_terminal():
     print('xterm disconnect')
+    if request.sid not in socket_poll.keys():
+        return
     containerid = socket_poll[request.sid].container_id
     del socket_poll[request.sid]

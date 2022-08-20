@@ -41,4 +41,6 @@ def handle_message(data):
 
 @socketio.on("disconnect", namespace="/runner")
 def tear_terminal():
+    if request.sid not in socket_poll.keys():
+        return
     del socket_poll[request.sid]

@@ -32,13 +32,17 @@ pdb_poll = dict()
 raw_sock_poll = dict()
 
 def pdb_stdout(runsocket, sid):
-    while True:
-        output = runsocket.read(1).decode('utf-8')
-        if output == '':
-            print('EOF reaeched.')
-            pdb_exit(sid)
-        else:
-            socketio.emit('stdout', output, to=sid, namespace="/debugger")
+    while runsocket.isalive():
+        try:
+            output = runsocket.read(1).decode('utf-8')
+            if output == '':
+                print('EOF reached.')
+                pdb_exit(sid)
+                return
+            else:
+                socketio.emit('stdout', output, to=sid, namespace="/debugger")
+        except:
+            print("runsocket is closed")
 
 @socketio.on("start", namespace="/debugger")
 def pdb_connect(container_id, filepath):
@@ -60,12 +64,13 @@ def pdb_connect(container_id, filepath):
             res = runsocket.before.decode('utf-8')
             s,f = re.search('\d+\.\d+\.\d+\.\d+:\d+',res).span()
             host, post = res[s:f].split(":")
-            print('telnet %s %s'%(host, post))
+            # print('telnet %s %s'%(host, post))
             pdbsocket.sendline('telnet %s %s'%(host, post))
             index = pdbsocket.expect(['(Pdb)',pexpect.TIMEOUT])
             if index:
                 raise Exception('timeout')
-            index = runsocket.expect(["RemotePdb accepted connection \S+.",pexpect.TIMEOUT])
+            print(post, type(post))
+            index = runsocket.expect(["RemotePdb accepted connection from \('%s', \d+\)\.\r\nRemotePdb accepted connection from \('%s', \d+\)\.\r\n"%(host, host),pexpect.TIMEOUT])
             if index:
                 raise Exception('timeout')
             runsocket.send('')
@@ -139,13 +144,13 @@ def pdb_next_breakpoint():
         return "Unstarted", 500
     pdbsocket = pdb.pdbsocket
     pdbsocket.sendline("c")
-    while True:
+    while pdbsocket.isalive():
         index = pdbsocket.expect(["> .*\(\d+\)<module>()", pexpect.EOF, pexpect.TIMEOUT])
         if index == 0:
             break
         elif index == 1:
             pdb_exit()
-            break
+            return
 
     res = pdbsocket.after.decode('utf-8')
     s, f = re.search('\(\d+\)<', res).span()
@@ -162,13 +167,13 @@ def pdb_next_line():
         return "Unstarted", 500
     pdbsocket = pdb.pdbsocket
     pdbsocket.sendline("n")
-    while True:
+    while pdbsocket.isalive():
         index = pdbsocket.expect(["> .*\(\d+\)<module>()", pexpect.EOF, pexpect.TIMEOUT])
         if index == 0:
             break
         elif index == 1:
             pdb_exit()
-            break
+            return
 
     res = pdbsocket.after.decode('utf-8')
     s, f = re.search('\(\d+\)<', res).span()
@@ -228,6 +233,8 @@ def pdb_exit(sid=None):
     if sid == None:
         sid = request.sid
 
+    if sid not in pdb_poll.keys():
+        return
     pdb = pdb_poll[sid]
     if pdb.state == 0:
         return "Unstarted", 500
@@ -251,5 +258,3 @@ def pdb_exit(sid=None):
 @socketio.on("disconnect", namespace="/debugger")
 def pdb_disconnect():
     pdb_exit()
-
-# pdb_connect('258588', r'/workspace/test/test2.py')
