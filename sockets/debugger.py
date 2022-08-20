@@ -8,6 +8,7 @@ from flask import request, jsonify
 import threading
 from sockets import socketio
 import select
+from views.dockers import docker_exec_bash
 
 class pdbData():
     def __init__(self, containerid, filepath, pdbsocket, runsocket, host, post):
@@ -34,9 +35,8 @@ def pdb_stdout(runsocket, sid):
     while True:
         output = runsocket.read(1).decode('utf-8')
         if output == '':
-            # socketio.emit('stopped', to=sid, namespace="/debugger")
-            # break
-            pass
+            print('EOF reaeched.')
+            pdb_exit(sid)
         else:
             socketio.emit('stdout', output, to=sid, namespace="/debugger")
 
@@ -46,19 +46,14 @@ def pdb_connect(container_id, filepath):
         client = docker.from_env()
         containers = client.containers
         container = containers.get(container_id)
+
         _, pdb_raw_sock = container.exec_run("/bin/bash", socket=True, stdin=True, tty=True)
         pdbsocket = pexpect.fdpexpect.fdspawn(pdb_raw_sock.fileno(), timeout=2)
-
-        _, run_raw_sock = container.exec_run("/bin/bash", socket=True, stdin=True, tty=True)
-        runsocket = pexpect.fdpexpect.fdspawn(run_raw_sock.fileno())
-
-        runsocket.expect("#")
         pdbsocket.expect("#")
 
-        runsocket.sendline("sed '1i from remote_pdb import set_trace;set_trace();' %s > .run"%filepath )
-        runsocket.expect("#")
-
-        runsocket.sendline('python .run')
+        docker_exec_bash(container_id, "sed '1i from remote_pdb import set_trace;set_trace();' %s > .run"%filepath)
+        _, run_raw_sock = container.exec_run("python .run", socket=True, stdin=True, tty=True)
+        runsocket = pexpect.fdpexpect.fdspawn(run_raw_sock.fileno(), timeout=None)
         index = runsocket.expect(['waiting for connection ...',])
 
         if index == 0:
@@ -186,7 +181,6 @@ def pdb_next_line():
 
 @socketio.on("check", namespace="/debugger")
 def pdb_getvalue(variables):
-    variables = json.loads(variables)
     pdb = pdb_poll[request.sid]
     if pdb.state == 0:
         return "Unstarted", 500
@@ -201,18 +195,24 @@ def pdb_getvalue(variables):
             value = "\n".join(res.split('\r\n'))
         print(value)
 
+        message = None
         pdbsocket.sendline("p type(%s)"%i)
-        index = pdbsocket.expect(["<class .*>"])
+        index = pdbsocket.expect(["<class .*>", "\*\*\* NameError: name .* is not defined"])
         if index == 0:
             res = pdbsocket.after.decode('utf-8')
             typeof = res
 
-        if typeof == "<class 'int'>":
-            value = int(value)
-        elif typeof == "<class 'float'>":
-            value = int(value)
+            if typeof == "<class 'int'>":
+                value = int(value)
+            elif typeof == "<class 'float'>":
+                value = float(value)
+        else:
+            message = pdbsocket.after.decode('utf-8')
 
-        variables_list.append({'name':i,'value':value,'type':typeof})
+        if message is None:
+            message = f"{typeof}: {i} = {value}" # {'name':i,'value':value,'type':typeof}
+        variables_list.append(message)
+
     socketio.emit("response", pdb.response(messageType="variables",message=variables_list),to=request.sid, namespace="/debugger")
 
 @socketio.on("stdin", namespace="/debugger")
@@ -224,21 +224,29 @@ def pdb_stdin(message):
     runsocket.send(message)
 
 @socketio.on("exit", namespace="/debugger")
-def pdb_exit():
-    pdb = pdb_poll[request.sid]
+def pdb_exit(sid=None):
+    if sid == None:
+        sid = request.sid
+
+    pdb = pdb_poll[sid]
     if pdb.state == 0:
         return "Unstarted", 500
-    pdbsocket = pdb.pdbsocket
-    pdbsocket.sendline("exit")
-    index1 = pdbsocket.expect(["exit"])
-    runsocket = pdb.runsocket
-    runsocket.sendline("exit")
-    index2 = runsocket.expect(["exit"])
-    if index1 == 0 and index2 == 0:
-        pdb.lineno = 0
-        pdb.state = 0
-        socketio.emit("response", pdb.response(),to=request.sid, namespace="/debugger")
-        del pdb_poll[request.sid]
+
+    try:
+        pdbsocket = pdb.pdbsocket
+        pdbsocket.sendline("exit")
+        index1 = pdbsocket.expect(["exit"])
+    except:
+        pass
+
+    pdb.pdbsocket.close()
+    pdb.runsocket.close()
+
+    pdb.lineno = 0
+    pdb.state = 0
+    socketio.emit("response", pdb.response(),to=sid, namespace="/debugger")
+    socketio.emit("end", namespace="/debugger")
+    del pdb_poll[sid]
 
 @socketio.on("disconnect", namespace="/debugger")
 def pdb_disconnect():
