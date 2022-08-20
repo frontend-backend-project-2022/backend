@@ -94,7 +94,7 @@ def test_project(client, auth):
         response = client.delete(host + 'deleteProject/'+ project_list[1]['containerid'])
         project_list = client.get(host + 'getAllProjects/').json
         assert len(project_list) == 1
-        assert project_list[0]['language'] == 'python'
+        assert project_list[0]['language'] == 'python'        
         client.delete(host + 'deleteProject/'+ project_list[0]['containerid'])
 
 
@@ -233,8 +233,12 @@ def test_dependencies_manage(client, auth):
         containerid = client.post('/database/createProject/', json=nodejs_project_data).data.decode()
         addNodejsPackage_data['containerid'] = containerid
 
+        response = client.get('/docker/getNodejsList/%s'%containerid)
+        assert '200' in str(response)
         response = client.post('/docker/addNodejsPackage/', json=addNodejsPackage_data)
         assert '201' in str(response)
+        response = client.get('/docker/getNodejsList/%s'%containerid)
+        assert '200' in str(response)
         response = client.delete('/docker/deleteNodejsPackage/', json=addNodejsPackage_data)
         assert '200' in str(response)
 
