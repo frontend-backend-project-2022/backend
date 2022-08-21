@@ -25,10 +25,11 @@ def send_worker(sid):
     terminal = socket_poll[sid].terminal
     pty = socket_poll[sid].pty
     while terminal.poll() is None:
-        r, _, _ = select.select([pty], [], [])
+        r, _, _ = select.select([pty], [], [], 0.2)
         if pty in r:
             output_from_docker = os.read(pty, 1024)
             socketio.emit("response", output_from_docker.decode(),to=sid, namespace="/xterm")
+    socketio.emit('end', to=sid, namespace="/xterm")
 
 @socketio.on("start", namespace="/xterm")
 def init_terminal(containerid):
