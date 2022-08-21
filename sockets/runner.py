@@ -9,12 +9,13 @@ import time
 from flask import request
 
 class runnerData():
-    def __init__(self, containerid, fileurl):
-        container_id = docker_connect(containerid, fileurl)
+    def __init__(self, containerid, start_cmd):
+        container_id = docker_connect(containerid)
         self.container_id = container_id
         self.pty, tty = pty.openpty()
+        print(f"docker exec -it {containerid} {start_cmd}")
         self.terminal = subprocess.Popen(
-            ["docker", "exec", "-it", container_id, "python", fileurl], stdin=tty, stdout=tty, stderr=tty
+            f"docker exec -it {containerid} {start_cmd}", stdin=tty, stdout=tty, stderr=tty, shell=True
         )
 
 socket_poll = dict()
@@ -31,8 +32,15 @@ def send_worker(sid):
 
 
 @socketio.on("start", namespace="/runner")
-def init_terminal(containerid, fileurl):
-    socket_poll[request.sid] = runnerData(containerid, fileurl)
+def init_terminal(containerid, language, fileurl):
+    file_without_suffix = '.'.join(fileurl.split('.')[:-1])
+    start_cmd_dict = {
+        "Python": f"python {fileurl}",
+        "C/C++": f"/bin/bash -c \"g++ {fileurl} -o {file_without_suffix} && {file_without_suffix}\"",
+        'node': f"node {fileurl}"
+    }
+
+    socket_poll[request.sid] = runnerData(containerid, start_cmd_dict[language])
     socketio.start_background_task(send_worker,request.sid)
 
 @socketio.on("message", namespace="/runner")
