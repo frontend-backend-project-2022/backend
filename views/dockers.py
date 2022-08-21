@@ -461,7 +461,7 @@ def docker_get_nodejs_list(containerid):
             item_list = item.split('@')
             print(item_list)
             nodejs_dic[item_list[0]] = item_list[1]
-        return json.dumps(res), 200
+        return json.dumps(nodejs_dic), 200
     except Exception as e:
         print(str(e))
         return str(e), 500
