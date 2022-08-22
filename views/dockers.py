@@ -408,6 +408,8 @@ def docker_get_pip_list(containerid):
             item_list = item.split(' ')
             while '' in item_list:
                 item_list.remove('')
+            if item_list[0] == 'WARNING:':
+                break
             pip_dic[item_list[0]] = item_list[1]
         return json.dumps(pip_dic), 200
     except Exception as e:
