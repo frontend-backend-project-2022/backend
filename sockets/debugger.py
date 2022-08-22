@@ -136,6 +136,8 @@ def pdb_delete_breakpoint(lineno):
             print("error %d:%s"%(index, pdbsocket.after.decode('utf-8')))
     socketio.emit("response", pdb.response(),to=request.sid, namespace="/debugger")
 
+line_result_regex = r"> ([^ ]*|<[^<>]*>)\((\d+)\)[<\w>]+\(\)"
+
 @socketio.on("skip", namespace="/debugger")
 def pdb_next_breakpoint():
     pdb = pdb_poll[request.sid]
@@ -144,7 +146,7 @@ def pdb_next_breakpoint():
     pdbsocket = pdb.pdbsocket
     pdbsocket.sendline("c")
     while pdbsocket.isalive():
-        index = pdbsocket.expect([r'> ([^ ]*)\((\d+)\)<module>', pexpect.EOF, pexpect.TIMEOUT])
+        index = pdbsocket.expect([line_result_regex, pexpect.EOF, pexpect.TIMEOUT])
         if index == 0:
             break
         elif index == 1:
@@ -152,7 +154,7 @@ def pdb_next_breakpoint():
             return
 
     res = pdbsocket.after.decode('utf-8')
-    re_result = re.search(r'> ([^ ]*)\((\d+)\)<module>', res)
+    re_result = re.search(line_result_regex, res)
     fileurl, lineNumber = re_result.group(1), int(re_result.group(2))
     fileurl = '/'.join(['.'] + fileurl.split('/')[2:])  # to relative path
     pdb.lineno = [fileurl, lineNumber]
@@ -168,7 +170,7 @@ def pdb_next_line():
     pdbsocket = pdb.pdbsocket
     pdbsocket.sendline("n")
     while pdbsocket.isalive():
-        index = pdbsocket.expect(["> .*\(\d+\)<module>()", pexpect.EOF, pexpect.TIMEOUT])
+        index = pdbsocket.expect([line_result_regex, pexpect.EOF, pexpect.TIMEOUT])
         if index == 0:
             break
         elif index == 1:
@@ -177,12 +179,15 @@ def pdb_next_line():
 
     res = pdbsocket.after.decode('utf-8')
     print(res)
-    re_result = re.search(r'> ([^ ]*)\((\d+)\)<module>', res)
+    re_result = re.search(line_result_regex, res)
     fileurl, lineNumber = re_result.group(1), int(re_result.group(2))
-    fileurl = '/'.join(['.'] + fileurl.split('/')[2:])  # to relative path
-    pdb.lineno = [fileurl, lineNumber]
-
-    socketio.emit("response", pdb.response(),to=request.sid, namespace="/debugger")
+    print(fileurl, lineNumber)
+    if fileurl.startswith('/workspace') and fileurl != './.run':
+        fileurl = '/'.join(['.'] + fileurl.split('/')[2:])  # to relative path
+        pdb.lineno = [fileurl, lineNumber]
+        socketio.emit("response", pdb.response(),to=request.sid, namespace="/debugger")
+    else:
+        pdb_next_line()
 
 
 
