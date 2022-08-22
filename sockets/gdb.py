@@ -79,9 +79,7 @@ def gdb_connect(container_id, filepath):
             gdbsocket.sendline('gdb .run.exe')
             gdbsocket.sendline('target remote localhost:%d'%port)
             gdbsocket.expect('\(gdb\).*\(gdb\)')
-            # print("miao",gdbsocket.before)
             index = runsocket.expect(["Remote debugging from host 127\.0\.0\.1\r\n",pexpect.TIMEOUT])
-            # print("miao",runsocket.before)
             
             if index:
                 raise Exception('timeout')
@@ -257,7 +255,3 @@ def gdb_exit(sid=None):
 def gdb_disconnect():
     gdb_exit()
 
-
-# i = docker_connect(language = "C/C++", version = "gcc 8.3")
-# i = 'b30a'
-# gdb_connect(i, "/workspace/1.cpp")
