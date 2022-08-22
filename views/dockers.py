@@ -33,7 +33,7 @@ def docker_connect(name=None, language=None, version=None):
         print(img,language,version)
         if language and version:
             if language == 'Python':
-                if version in ['Python 3.7', 'Python 3.8', 'Python 3.9']:
+                if version in ['Python 3.8', 'Python 3.9', 'Python 3.10']:
                     s, f = re.search('3.\d+', version).span()
                     img = "web-ide/python:%s"%version[s:f]
             elif language == 'C/C++':
