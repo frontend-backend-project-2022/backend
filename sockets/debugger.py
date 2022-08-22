@@ -17,15 +17,15 @@ class pdbData():
         self.filepath = filepath
         self.pdbsocket = pdbsocket
         self.runsocket = runsocket
-        self.lineno = 2 #
+        self.lineno = ['.run.py', -1] #
         self.state = 1 #
         self.host = host
         self.post = post
 
     def response(self, messageType="none", message = ""):
         # 返回的bp里-1代表已删除
-        bp_ = [line_number - 1 for line_number in self.bp]
-        dic = {'bp':bp_, 'lineno':self.lineno - 1,'state':self.state, 'messageType':messageType, 'message':message}
+        # bp_ = [line_number - 1 for line_number in self.bp]
+        dic = {'bp':self.bp, 'lineno':self.lineno,'state':self.state, 'messageType':messageType, 'message':message}
         return dic
 
 pdb_poll = dict()
@@ -55,7 +55,7 @@ def pdb_connect(container_id, filepath):
         pdbsocket = pexpect.fdpexpect.fdspawn(pdb_raw_sock.fileno(), timeout=2)
         pdbsocket.expect("#")
 
-        docker_exec_bash(container_id, "sed '1i from remote_pdb import set_trace;set_trace();' %s > .run"%filepath)
+        docker_exec_bash(container_id, r"echo 'from remote_pdb import set_trace\nset_trace()\nimport importlib.util\nspec = importlib.util.spec_from_file_location(\"__main__\", \"{}\")\nfoo = importlib.util.module_from_spec(spec)\nspec.loader.exec_module(foo)' > .run".format(filepath))
         _, run_raw_sock = container.exec_run("python .run", socket=True, stdin=True, tty=True)
         runsocket = pexpect.fdpexpect.fdspawn(run_raw_sock.fileno(), timeout=None)
         index = runsocket.expect(['waiting for connection ...',])
@@ -94,16 +94,16 @@ def pdb_connect(container_id, filepath):
 @socketio.on("add", namespace="/debugger")
 def pdb_add_breakpoint(lineno):
     print(f'add breakpoint {lineno}')
-    lineno += 1
     pdb = pdb_poll[request.sid]
     if pdb.state == 0:
         socketio.emit("error", "Unstarted")
     pdbsocket = pdb.pdbsocket
-    pdbsocket.sendline("b %d"%lineno)
-    index = pdbsocket.expect(["Breakpoint \d+ at .*:%d"%lineno,"End of file","\*\*\*"])
+    pdbsocket.sendline(f"b {lineno[0]}:{lineno[1]}")
+    index = pdbsocket.expect(["Breakpoint \d+ at .*:%d"%lineno[1],"End of file","\*\*\*"])
 
     if index == 0:
-        print("successfully added line %d"%lineno)
+        print(f"successfully added line {lineno[0]}:{lineno[1]}")
+        print(pdbsocket.after.decode('utf-8'))
         pdb.bp.append(lineno)
         socketio.emit("response", pdb.response(),to=request.sid, namespace="/debugger")
     elif index == 2:
@@ -116,23 +116,22 @@ def pdb_add_breakpoint(lineno):
 def pdb_add_breakpoint_list(linenoList):
     for lineno in linenoList:
         pdb_add_breakpoint(lineno)
+    socketio.emit("addListFinished", to=request.sid, namespace="/debugger")
 
 @socketio.on("delete", namespace="/debugger")
 def pdb_delete_breakpoint(lineno):
-    lineno += 1
     pdb = pdb_poll[request.sid]
     if pdb.state == 0:
         return "Unstarted", 500
     pdbsocket = pdb.pdbsocket
     pos = [i + 1 for i in range(len(pdb.bp)) if pdb.bp[i] == lineno]
     for i in pos:
-        print(i)
         pdbsocket.sendline("cl %d"%i)
         index = pdbsocket.expect(["Deleted breakpoint \d+ at .*:\d+","End of file","\*\*\*"])
 
         if index == 0:
             print("successfully deleted bp %d"%i)
-            pdb.bp[i - 1] = -1
+            pdb.bp[i - 1] = ["", -1]
         else:
             print("error %d:%s"%(index, pdbsocket.after.decode('utf-8')))
     socketio.emit("response", pdb.response(),to=request.sid, namespace="/debugger")
@@ -145,7 +144,7 @@ def pdb_next_breakpoint():
     pdbsocket = pdb.pdbsocket
     pdbsocket.sendline("c")
     while pdbsocket.isalive():
-        index = pdbsocket.expect(["> .*\(\d+\)<module>()", pexpect.EOF, pexpect.TIMEOUT])
+        index = pdbsocket.expect([r'> ([^ ]*)\((\d+)\)<module>', pexpect.EOF, pexpect.TIMEOUT])
         if index == 0:
             break
         elif index == 1:
@@ -153,9 +152,10 @@ def pdb_next_breakpoint():
             return
 
     res = pdbsocket.after.decode('utf-8')
-    s, f = re.search('\(\d+\)<', res).span()
-    print("lineno:", res[s + 1 : f - 2]) #lineno
-    pdb.lineno = int(res[s + 1 : f - 2])
+    re_result = re.search(r'> ([^ ]*)\((\d+)\)<module>', res)
+    fileurl, lineNumber = re_result.group(1), int(re_result.group(2))
+    fileurl = '/'.join(['.'] + fileurl.split('/')[2:])  # to relative path
+    pdb.lineno = [fileurl, lineNumber]
 
     socketio.emit("response", pdb.response(),to=request.sid, namespace="/debugger")
 
@@ -176,9 +176,11 @@ def pdb_next_line():
             return
 
     res = pdbsocket.after.decode('utf-8')
-    s, f = re.search('\(\d+\)<', res).span()
-    print("lineno:", res[s + 1 : f - 2]) #lineno
-    pdb.lineno = int(res[s + 1 : f - 2])
+    print(res)
+    re_result = re.search(r'> ([^ ]*)\((\d+)\)<module>', res)
+    fileurl, lineNumber = re_result.group(1), int(re_result.group(2))
+    fileurl = '/'.join(['.'] + fileurl.split('/')[2:])  # to relative path
+    pdb.lineno = [fileurl, lineNumber]
 
     socketio.emit("response", pdb.response(),to=request.sid, namespace="/debugger")
 
@@ -249,7 +251,7 @@ def pdb_exit(sid=None):
     pdb.pdbsocket.close()
     pdb.runsocket.close()
 
-    pdb.lineno = 0
+    pdb.lineno = ['.run.py', -1]
     pdb.state = 0
     socketio.emit("response", pdb.response(),to=sid, namespace="/debugger")
     socketio.emit("end", namespace="/debugger")
