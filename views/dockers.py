@@ -47,7 +47,7 @@ def docker_connect(name=None, language=None, version=None):
                     s, f = re.search('1\d.\d+', version).span()
                     img = "web-ide/node:%s"%version[s:f]
         print(img)
-        container = containers.run(img, name=name,tty=True, detach=True,command="bash", working_dir='/workspace')
+        container = containers.run(img, name=name,tty=True, detach=True,command="bash", working_dir='/workspace', cap_add=["SYS_PTRACE",],security_opt=["seccomp=unconfined",])
         container.kill()
     return container.id
 
