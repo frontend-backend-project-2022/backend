@@ -10,6 +10,7 @@ from sockets import socketio
 import select
 import random
 from views.dockers import docker_exec_bash
+from views.database import db_getProjectInfo
 
 class gdbData():
     def __init__(self, containerid, filepath, gdbsocket, runsocket, port):
@@ -66,20 +67,28 @@ def gdb_connect(container_id, filepath):
         gdbsocket.expect("#")
 
         port = int(getPort())
-        print(port)
-        docker_exec_bash(container_id, "g++ -g %s -o .run.exe"%(filepath,))
+
+        print("k")
+        res = db_getProjectInfo(container_id)
+        language_version = res['version']
+        print(language_version)
+        if 'gcc' in language_version:
+            docker_exec_bash(container_id, "g++ -g %s -o .run.exe"%(filepath,))
+        elif 'clang' in language_version: 
+            docker_exec_bash(container_id, "clang++ -g %s -o .run.exe"%(filepath,))
+        else:
+            socketio.emit('error', "No suitable compiler")
+
         _, run_raw_sock = container.exec_run("gdbserver localhost:%d .run.exe"%(port, ), socket=True, stdin=True, tty=True)
 
         runsocket = pexpect.fdpexpect.fdspawn(run_raw_sock.fileno(), timeout=None)
-        print("k")
         index = runsocket.expect(['Listen',])
-        print("k")
 
         if index == 0:
-            gdbsocket.sendline('gdb .run.exe')
+            gdbsocket.sendline('gdb -q .run.exe')
             gdbsocket.sendline('target remote localhost:%d'%port)
             gdbsocket.expect('\(gdb\).*\(gdb\)')
-            index = runsocket.expect(["Remote debugging from host 127\.0\.0\.1\r\n",pexpect.TIMEOUT])
+            index = runsocket.expect(["Remote debugging from host 127\.0\.0\.1(, port \d+)?\r\n",pexpect.TIMEOUT])
 
             if index:
                 raise Exception('timeout')
@@ -153,10 +162,14 @@ def gdb_next_breakpoint():
     gdbsocket = gdb.gdbsocket
     gdbsocket.sendline("c")
     while gdbsocket.isalive():
-        index = gdbsocket.expect(["Breakpoint \d+, .*:\d+\r\n.*\r\n\(gdb\)", pexpect.EOF, pexpect.TIMEOUT])
+        index = gdbsocket.expect(["Breakpoint \d+, .*:\d+\r\n.*\r\n.*\(gdb\)", "q to quit, c to continue", pexpect.EOF, pexpect.TIMEOUT])
+        print(gdbsocket.before)
         if index == 0:
             break
         elif index == 1:
+            print("get")
+            gdbsocket.sendline("<RET>")
+        elif index == 2:
             gdb_exit()
             return
 
@@ -178,7 +191,7 @@ def gdb_next_line():
     gdbsocket = gdb.gdbsocket
     gdbsocket.sendline("n")
     while gdbsocket.isalive():
-        index = gdbsocket.expect(["\d+.*\r\n\(gdb\)", pexpect.EOF, pexpect.TIMEOUT])
+        index = gdbsocket.expect(["\d+.*\r\n.*\(gdb\)", pexpect.EOF, pexpect.TIMEOUT])
         if index == 0:
             break
         elif index == 1:
@@ -186,8 +199,13 @@ def gdb_next_line():
             return
 
     res = gdbsocket.after.decode('utf-8')
-    print('miao',res)
     res = res.split('\r\n')[0]
+    # s = 0
+    # while res[s].isdigit() == False:
+    #     s += 1
+    # f = s + 1
+    # while res[f].isdigit():
+    #     f += 1
     s, f = re.search('\d+\t', res).span()
     print("lineno:", res[s : f - 1]) #lineno
     gdb.lineno = int(res[s : f - 1])

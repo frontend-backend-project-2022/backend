@@ -203,8 +203,9 @@ def db_getAllProjects():
             print(repr(e) + 'during geting all projects')
             return 'KerError', 400
 
+
 @database_bp.route("/getProject/<container_id>", methods=['GET'])
-def db_getProject(container_id):
+def db_getProjectInfo(container_id):
     try:
         conn = sql.connect(DB_DIR)
         conn.execute("PRAGMA foreign_keys=ON;")
@@ -217,7 +218,7 @@ def db_getProject(container_id):
             res['version'] = i[3]
             res['time'] = i[4]
         conn.close()
-        return jsonify(res), 200
+        return res
     except:
         print('Failed to select data from sqlite table')
         return "failed", 500

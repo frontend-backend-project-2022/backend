@@ -185,6 +185,7 @@ def pdb_next_line():
     if fileurl.startswith('/workspace') and fileurl != './.run':
         fileurl = '/'.join(['.'] + fileurl.split('/')[2:])  # to relative path
         pdb.lineno = [fileurl, lineNumber]
+        print(pdb.lineno)
         socketio.emit("response", pdb.response(),to=request.sid, namespace="/pdb")
     else:
         pdb_next_line()

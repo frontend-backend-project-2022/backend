@@ -7,6 +7,7 @@ import os
 import subprocess
 import time
 from flask import request
+from views.database import db_getProjectInfo
 
 class runnerData():
     def __init__(self, containerid, start_cmd):
@@ -36,7 +37,7 @@ def init_terminal(containerid, language, fileurl):
     file_without_suffix = '.'.join(fileurl.split('.')[:-1])
     start_cmd_dict = {
         "Python": f"python {fileurl}",
-        "C/C++": f"/bin/bash -c \"g++ {fileurl} -o {file_without_suffix} && {file_without_suffix}\"",
+        "C/C++": f"/bin/bash -c \"g++ {fileurl} -o {file_without_suffix} && {file_without_suffix}\"" if 'gcc' in db_getProjectInfo(containerid)['version'] else f"/bin/bash -c \"clang++ {fileurl} -o {file_without_suffix} && {file_without_suffix}\"",
         'node': f"node {fileurl}"
     }
 
