@@ -69,7 +69,7 @@ def gdb_connect(container_id, filepath):
         print(port)
         docker_exec_bash(container_id, "g++ -g %s -o .run.exe"%(filepath,))
         _, run_raw_sock = container.exec_run("gdbserver localhost:%d .run.exe"%(port, ), socket=True, stdin=True, tty=True)
-        
+
         runsocket = pexpect.fdpexpect.fdspawn(run_raw_sock.fileno(), timeout=None)
         print("k")
         index = runsocket.expect(['Listen',])
@@ -80,7 +80,7 @@ def gdb_connect(container_id, filepath):
             gdbsocket.sendline('target remote localhost:%d'%port)
             gdbsocket.expect('\(gdb\).*\(gdb\)')
             index = runsocket.expect(["Remote debugging from host 127\.0\.0\.1\r\n",pexpect.TIMEOUT])
-            
+
             if index:
                 raise Exception('timeout')
             runsocket.send('')
@@ -245,7 +245,7 @@ def gdb_exit(sid=None):
     gdb.gdbsocket.close()
     gdb.runsocket.close()
 
-    gdb.lineno = 0
+    gdb.lineno = -1
     gdb.state = 0
     socketio.emit("response", gdb.response(),to=sid, namespace="/gdb")
     socketio.emit("end", namespace="/gdb")
@@ -254,4 +254,3 @@ def gdb_exit(sid=None):
 @socketio.on("disconnect", namespace="/gdb")
 def gdb_disconnect():
     gdb_exit()
-
