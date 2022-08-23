@@ -202,9 +202,7 @@ def db_getAllProjects():
         else:
             print(repr(e) + 'during geting all projects')
             return 'KerError', 400
-
-
-@database_bp.route("/getProject/<container_id>", methods=['GET'])
+            
 def db_getProjectInfo(container_id):
     try:
         conn = sql.connect(DB_DIR)
@@ -221,7 +219,14 @@ def db_getProjectInfo(container_id):
         return res
     except:
         print('Failed to select data from sqlite table')
-        return "failed", 500
+        return None
+
+@database_bp.route("/getProject/<container_id>", methods=['GET'])
+def db_getProject(container_id):
+    res = db_getProjectInfo(container_id)
+    if res is not None:
+        return jsonify(res), 200
+    return "failed", 500
 
 @database_bp.route("/deleteProject/<container_id>", methods=['DELETE'])
 def db_deleteProject(container_id):
