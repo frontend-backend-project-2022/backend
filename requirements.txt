@@ -10,4 +10,4 @@ flask-cors
 pytest-cov
 pexpect
 gunicorn
-eventlet==0.30.2
+gevent
