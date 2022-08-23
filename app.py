@@ -3,7 +3,6 @@ from flask_cors import CORS
 from views.dockers import *
 from views.database import *
 from views.login import login_bp
-import os
 
 from sockets import socketio
 
@@ -22,8 +21,6 @@ def hello_world():
     return "<p>Hello, World!</p>"
 
 db_init()
-os.system("python images/setup.sh")
-
 
 if __name__ == "__main__":
     app.run(debug=True)
