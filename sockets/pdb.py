@@ -10,27 +10,32 @@ from sockets import socketio
 import select
 from views.dockers import docker_exec_bash
 
+# This file contains Python-debugging related part.
+
 class pdbData():
+    # basic info of a running pdb
     def __init__(self, containerid, filepath, pdbsocket, runsocket, host, post):
-        self.bp = [] #
+        self.bp = []
         self.containerid = containerid
         self.filepath = filepath
         self.pdbsocket = pdbsocket
         self.runsocket = runsocket
-        self.lineno = ['.run.py', -1] #
-        self.state = 1 #
+        self.lineno = ['.run.py', -1]
+        self.state = 1
         self.host = host
         self.post = post
 
     def response(self, messageType="none", message = ""):
         # 返回的bp里-1代表已删除
-        # bp_ = [line_number - 1 for line_number in self.bp]
+        # bp = [[self.filepath, line_number] for line_number in self.bp]
         dic = {'bp':self.bp, 'lineno':self.lineno,'state':self.state, 'messageType':messageType, 'message':message}
         return dic
 
+# memory poll for pdbData
 pdb_poll = dict()
 raw_sock_poll = dict()
 
+# get stdout/stderr from runsocket and sent to front-end
 def pdb_stdout(runsocket, sid):
     while runsocket.isalive():
         try:
@@ -44,6 +49,7 @@ def pdb_stdout(runsocket, sid):
         except:
             print("runsocket is closed")
 
+# start pdb and detach run-terminal and pdb-terminal
 @socketio.on("start", namespace="/pdb")
 def pdb_connect(container_id, filepath):
     try:
@@ -90,7 +96,7 @@ def pdb_connect(container_id, filepath):
     except Exception as e:
         print("error", e)
 
-
+# add a breakpoint
 @socketio.on("add", namespace="/pdb")
 def pdb_add_breakpoint(lineno):
     print(f'add breakpoint {lineno}')
@@ -112,12 +118,14 @@ def pdb_add_breakpoint(lineno):
     else:
         print("error %d:%s"%(index, pdbsocket.after.decode('utf-8')))
 
+# add breakpoint list
 @socketio.on("addList", namespace="/pdb")
 def pdb_add_breakpoint_list(linenoList):
     for lineno in linenoList:
         pdb_add_breakpoint(lineno)
     socketio.emit("addListFinished", to=request.sid, namespace="/pdb")
 
+# delete a breakpoint
 @socketio.on("delete", namespace="/pdb")
 def pdb_delete_breakpoint(lineno):
     pdb = pdb_poll[request.sid]
@@ -138,6 +146,7 @@ def pdb_delete_breakpoint(lineno):
 
 line_result_regex = r"> ([^ ]*|<[^<>]*>)\((\d+)\)[<\w>]+\(\)"
 
+# continue
 @socketio.on("skip", namespace="/pdb")
 def pdb_next_breakpoint():
     pdb = pdb_poll[request.sid]
@@ -161,7 +170,7 @@ def pdb_next_breakpoint():
 
     socketio.emit("response", pdb.response(),to=request.sid, namespace="/pdb")
 
-
+# next
 @socketio.on("next", namespace="/pdb")
 def pdb_next_line():
     pdb = pdb_poll[request.sid]
@@ -190,8 +199,7 @@ def pdb_next_line():
     else:
         pdb_next_line()
 
-
-
+# check value of variables
 @socketio.on("check", namespace="/pdb")
 def pdb_getvalue(variables):
     pdb = pdb_poll[request.sid]
@@ -228,6 +236,7 @@ def pdb_getvalue(variables):
 
     socketio.emit("response", pdb.response(messageType="variables",message=variables_list),to=request.sid, namespace="/pdb")
 
+# listen to message from front-end and sent to runsocket for handling
 @socketio.on("stdin", namespace="/pdb")
 def pdb_stdin(message):
     pdb = pdb_poll[request.sid]
@@ -236,6 +245,7 @@ def pdb_stdin(message):
     runsocket = pdb.runsocket
     runsocket.send(message)
 
+# exit debugging
 @socketio.on("exit", namespace="/pdb")
 def pdb_exit(sid=None):
     if sid == None:

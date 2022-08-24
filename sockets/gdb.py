@@ -12,26 +12,31 @@ import random
 from views.dockers import docker_exec_bash
 from views.database import db_getProjectInfo
 
+# This file contains C/C++-debugging related part.
+
 class gdbData():
+    # basic info of a running gdb
     def __init__(self, containerid, filepath, gdbsocket, runsocket, port):
-        self.bp = [] #
+        self.bp = []
         self.containerid = containerid
         self.filepath = filepath
         self.gdbsocket = gdbsocket
         self.runsocket = runsocket
-        self.lineno = 1 #
-        self.state = 1 #
+        self.lineno = 1
+        self.state = 1
         self.port = port
 
     def response(self, messageType="none", message = ""):
         # 返回的bp里-1代表已删除
-        # bp_ = [[self.filepath, line_number] for line_number in self.bp]
+        # bp = [[self.filepath, line_number] for line_number in self.bp]
         dic = {'bp':self.bp, 'lineno':[self.filepath, self.lineno],'state':self.state, 'messageType':messageType, 'message':message}
         return dic
 
+# memory poll for gdbData
 gdb_poll = dict()
 raw_sock_poll = dict()
 
+# get stdout/stderr from runsocket and sent to front-end
 def gdb_stdout(runsocket, sid):
     while runsocket.isalive():
         try:
@@ -45,6 +50,7 @@ def gdb_stdout(runsocket, sid):
         except:
             print("runsocket is closed")
 
+# start gdb and detach run-terminal and gdb-terminal
 @socketio.on("start", namespace="/gdb")
 def gdb_connect(container_id, filepath):
     def getPort():
@@ -108,7 +114,7 @@ def gdb_connect(container_id, filepath):
     except Exception as e:
         print("error", e)
 
-
+# add a breakpoint
 @socketio.on("add", namespace="/gdb")
 def gdb_add_breakpoint(lineno):
     print(f'add breakpoint {lineno}')
@@ -130,11 +136,13 @@ def gdb_add_breakpoint(lineno):
     else:
         print("error %d:%s"%(index, gdbsocket.after.decode('utf-8')))
 
+# add breakpoint list
 @socketio.on("addList", namespace="/gdb")
 def gdb_add_breakpoint_list(linenoList):
     for lineno in linenoList:
         gdb_add_breakpoint(lineno)
 
+# delete a breakpoint
 @socketio.on("delete", namespace="/gdb")
 def gdb_delete_breakpoint(lineno):
     gdb = gdb_poll[request.sid]
@@ -154,6 +162,7 @@ def gdb_delete_breakpoint(lineno):
             print("error %d:%s"%(index, gdbsocket.after.decode('utf-8')))
     socketio.emit("response", gdb.response(),to=request.sid, namespace="/gdb")
 
+# continue
 @socketio.on("skip", namespace="/gdb")
 def gdb_next_breakpoint():
     gdb = gdb_poll[request.sid]
@@ -181,7 +190,7 @@ def gdb_next_breakpoint():
 
     socketio.emit("response", gdb.response(),to=request.sid, namespace="/gdb")
 
-
+# next
 @socketio.on("next", namespace="/gdb")
 
 def gdb_next_line():
@@ -212,7 +221,7 @@ def gdb_next_line():
 
     socketio.emit("response", gdb.response(),to=request.sid, namespace="/gdb")
 
-
+# check value of variables
 @socketio.on("check", namespace="/gdb")
 def gdb_getvalue(variables):
     gdb = gdb_poll[request.sid]
@@ -234,6 +243,7 @@ def gdb_getvalue(variables):
 
     socketio.emit("response", gdb.response(messageType="variables",message=variables_list),to=request.sid, namespace="/gdb")
 
+# listen to message from front-end and sent to runsocket for handling
 @socketio.on("stdin", namespace="/gdb")
 def gdb_stdin(message):
     gdb = gdb_poll[request.sid]
@@ -242,6 +252,7 @@ def gdb_stdin(message):
     runsocket = gdb.runsocket
     runsocket.send(message)
 
+# exit debugging
 @socketio.on("exit", namespace="/gdb")
 def gdb_exit(sid=None):
     if sid == None:

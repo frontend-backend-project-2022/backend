@@ -4,6 +4,7 @@ from io import BytesIO
 import os
 import tarfile
 
+# This file is pytest-related part, run "pytest" in terminal and automatically start a test
 
 def test_index(client):
     response = client.get("/")
@@ -11,6 +12,7 @@ def test_index(client):
     response = client.get("/docker/")
     assert b"Docker" in response.data
 
+# test login-related part
 def test_login(client):
     user_data = {
         "username": "j31234",
@@ -32,6 +34,7 @@ def test_login(client):
         assert '401' in str(response)
 
 
+# test docker-bash-related part
 def test_bash(client, auth):
     project_data = {
         "projectname": "PROJECT",
@@ -57,6 +60,7 @@ def test_bash(client, auth):
         response = client.delete('/database/deleteProject/'+ containerid)
 
 
+# test project-related part
 def test_project(client, auth):
     host = '/database/'
     project_data = {
@@ -98,7 +102,7 @@ def test_project(client, auth):
         client.delete(host + 'deleteProject/'+ project_list[0]['containerid'])
 
 
-
+# test file-related part
 def test_file(client, auth):
     project_data = {
         "projectname": "PROJECT",
@@ -190,6 +194,7 @@ def test_file(client, auth):
 
         client.delete('/database/deleteProject/'+ containerid)###
 
+# test dependency-related part
 def test_dependencies_manage(client, auth):
     python_project_data = {
         "projectname": "PROJECT",

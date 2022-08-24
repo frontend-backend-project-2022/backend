@@ -3,5 +3,3 @@ __pycache__
 cov.xml
 .coverage
 /tempfiles
-/test-folder
-/test

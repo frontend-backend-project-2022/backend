@@ -12,6 +12,8 @@ docker_bp = Blueprint("docker", __name__)
 
 TEMPFILES_DIR = 'tempfiles'
 
+# This file contains docker-related part.
+
 
 # use blueprint as app
 @docker_bp.route("/")
@@ -20,6 +22,7 @@ def docker_index():
     containers = client.containers
     return "Docker Index"
 
+# create (if not exists) / connect (if exists) a container
 @docker_bp.route("/connect/", methods=['GET'])
 def docker_connect(name=None, language=None, version=None):
     client = docker.from_env()
@@ -51,6 +54,7 @@ def docker_connect(name=None, language=None, version=None):
         container.kill()
     return container.id
 
+# stop a container
 def docker_close(id):
     client = docker.from_env()
     containers = client.containers
@@ -64,7 +68,14 @@ def docker_close(id):
         print("docker close error:",e)
     return False
 
+# stop a container from front-end
+@docker_bp.post("/closeContainer/<containerid>/")
+def docker_close_container(containerid):
+    if not docker_close(containerid):
+        print('Error: close container failed.')
+    return 'success'
 
+# stop & rm a container
 def docker_rm(id):
     client = docker.from_env()
     containers = client.containers
@@ -79,7 +90,7 @@ def docker_rm(id):
         print("docker rm error:",e)
     return False
 
-# exec_bash
+# receive and execute bash command from front-end 
 @docker_bp.route("/bash/", methods=['POST'])
 def docker_bash():
     data = json.loads(request.data)
@@ -92,6 +103,7 @@ def docker_bash():
         return res, 200
     return "failed", 500
 
+# execute bash command in a container 
 def docker_exec_bash(name, cmd):
     client = docker.from_env()
     containers = client.containers
@@ -112,7 +124,7 @@ def docker_exec_bash(name, cmd):
         return None
 
 
-# recursively print directorys
+# recursively print directorys in a container and emit to front-end
 @docker_bp.route("/getdir/<containerid>", methods=['GET'])
 def docker_getdir(containerid):
     try:
@@ -148,6 +160,7 @@ def docker_getdir(containerid):
         print(repr(e) + "during docker_getdir()")
         return "failed", 500
 
+# receive file from front-end and add into a container
 @docker_bp.route("/uploadFile/", methods=['POST'])
 def docker_upload_file():
     # check if the post request has the file part
@@ -184,6 +197,8 @@ def docker_upload_file():
         print(str(e))
         return str(e), 500
 
+
+# receive file contents from front-end and modify in a container
 @docker_bp.route("/uploadContent/", methods=['POST'])
 def docker_upload_content():
 
@@ -220,6 +235,8 @@ def docker_upload_content():
     except Exception as e:
         return str(e), 500
 
+
+# receive folder from front-end and add into a container
 @docker_bp.route("/uploadFolder/", methods=['POST'])
 def docker_upload_folder():
     # check if the post request has the file part
@@ -263,6 +280,7 @@ def docker_upload_folder():
         print(str(e))
         return str(e), 500
 
+# get file content from a container and sent to front-end
 @docker_bp.route("/downloadContent/", methods=['GET', 'POST'])
 def docker_download_content():
     try:
@@ -290,6 +308,8 @@ def docker_download_content():
         print(str(e))
         return str(e), 500
 
+
+# get file from a container and sent to front-end
 @docker_bp.route("/downloadFile/", methods=['GET'])
 def docker_download_file():
     try:
@@ -323,6 +343,8 @@ def docker_download_file():
         print(repr(e))
         return repr(e), 400
 
+
+# get the project as a .tar file from a container and sent to front-end
 @docker_bp.route("/downloadFolder/", methods=['GET'])
 def docker_download_folder():
     try:
@@ -347,6 +369,7 @@ def docker_download_folder():
         print(repr(e))
         return repr(e), 400
 
+# create folder in a container
 @docker_bp.route("/createFolder/", methods=['POST'])
 def docker_create_folder():
     data = json.loads(request.data)
@@ -356,6 +379,7 @@ def docker_create_folder():
         return "success", 201
     return "failed", 500
 
+# delete folder in a container
 @docker_bp.route("/deleteFolder/", methods=['DELETE'])
 def docker_delete_folder():
     data = json.loads(request.data)
@@ -365,6 +389,7 @@ def docker_delete_folder():
         return "success", 200
     return "failed", 500
 
+# create a file in a container
 @docker_bp.route("/createFile/", methods=['POST'])
 def docker_create_file():
     data = json.loads(request.data)
@@ -375,6 +400,7 @@ def docker_create_file():
         return "success", 201
     return "failed", 500
 
+# delete a file in a container
 @docker_bp.route("/deleteFile/", methods=['DELETE'])
 def docker_delete_file():
     data = json.loads(request.data)
@@ -385,6 +411,7 @@ def docker_delete_file():
         return "success", 200
     return "failed", 500
 
+# rename a file in a container
 @docker_bp.route("/renameFile/", methods=['POST'])
 def docker_rename_file():
     data = json.loads(request.data)
@@ -396,6 +423,7 @@ def docker_rename_file():
         return "success", 200
     return "failed", 500
 
+# get python package list from a container
 @docker_bp.route("/getPipList/<containerid>")
 def docker_get_pip_list(containerid):
     try:
@@ -416,6 +444,7 @@ def docker_get_pip_list(containerid):
         print(str(e))
         return str(e), 500
 
+# pip python package into a container
 @docker_bp.route("/addPythonPackage/", methods=['POST'])
 def docker_add_python_package():
     try:
@@ -433,6 +462,7 @@ def docker_add_python_package():
         print(e)
         return str(e), 500
 
+# delete python package into a container
 @docker_bp.route("/deletePythonPackage/", methods=['DELETE'])
 def docker_delete_python_package():
     try:
@@ -445,7 +475,7 @@ def docker_delete_python_package():
         print(e)
         return str(e), 500
 
-
+# get node.js package list from a container
 @docker_bp.route("/getNodejsList/<containerid>")
 def docker_get_nodejs_list(containerid):
     try:
@@ -468,6 +498,7 @@ def docker_get_nodejs_list(containerid):
         print(str(e))
         return str(e), 500
 
+# yarn isntall node.js package into a container
 @docker_bp.route("/addNodejsPackage/", methods=['POST'])
 def docker_add_nodejs_package():
     try:
@@ -485,6 +516,7 @@ def docker_add_nodejs_package():
         print(e)
         return str(e), 500
 
+# delete node.js package in a container
 @docker_bp.route("/deleteNodejsPackage/", methods=['DELETE'])
 def docker_delete_nodejs_package():
     try:
@@ -497,8 +529,3 @@ def docker_delete_nodejs_package():
         print(e)
         return str(e), 500
 
-@docker_bp.post("/closeContainer/<containerid>/")
-def docker_close_container(containerid):
-    if not docker_close(containerid):
-        print('Error: close container failed.')
-    return 'success'

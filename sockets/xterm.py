@@ -8,7 +8,10 @@ import subprocess
 import time
 from flask import request
 
+# This contains WEB-terminal related part.
+
 class xtermData():
+    # start a terminal by subprocess
     def __init__(self, containerid):
         container_id = docker_connect(containerid)
         self.container_id = container_id
@@ -19,8 +22,7 @@ class xtermData():
 
 socket_poll = dict()
 
-
-
+# get stdout/stderr from tty and sent to front-end
 def send_worker(sid):
     terminal = socket_poll[sid].terminal
     pty = socket_poll[sid].pty
@@ -31,15 +33,18 @@ def send_worker(sid):
             socketio.emit("response", output_from_docker.decode(),to=sid, namespace="/xterm")
     socketio.emit('end', to=sid, namespace="/xterm")
 
+# start a terminal and establish connections
 @socketio.on("start", namespace="/xterm")
 def init_terminal(containerid):
     socket_poll[request.sid] = xtermData(containerid)
     socketio.start_background_task(send_worker,request.sid)
 
+# listen to message from front-end and sent to tty for handling
 @socketio.on("message", namespace="/xterm")
 def handle_message(data):
     os.write(socket_poll[request.sid].pty, data.encode())
 
+# disconnect and tear
 @socketio.on("disconnect", namespace="/xterm")
 def tear_terminal():
     print('xterm disconnect')

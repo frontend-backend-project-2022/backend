@@ -21,7 +21,10 @@ socketio.init_app(app)
 def hello_world():
     return "<p>Hello, World!</p>"
 
+# init database
 db_init()
+
+# prepare docker images
 os.system("python images/setup.sh")
 
 

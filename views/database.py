@@ -8,6 +8,7 @@ import json
 database_bp = Blueprint("database", __name__)
 DB_DIR = 'database.db'
 
+# This file contains database-related part (based on sqlite3).
 
 # use blueprint as app
 @database_bp.route("/")
@@ -15,6 +16,7 @@ def database_index():
     sql.connect(DB_DIR)
     return "Database Index"
 
+# create (if not exists) / connect (if exists) a database
 @database_bp.route("/init/", methods=['POST'])
 def db_init():
     conn = sql.connect(DB_DIR)
@@ -48,6 +50,7 @@ def db_init():
     conn.close()
     return None
 
+# insert a user
 def db_insertuser(name, pw):
     pwhash= generate_password_hash('NAME:'+name+'|PW:'+pw,method='pbkdf2:sha256',salt_length=8)
     try:
@@ -66,8 +69,7 @@ def db_insertuser(name, pw):
             conn.close()
         return False
 
-
-
+# insert a project
 def db_insertcontainer(name, projectname='',language='',version=0):
     container_id = docker_connect(language=language, version=version)
     print(language,version)
@@ -86,7 +88,8 @@ def db_insertcontainer(name, projectname='',language='',version=0):
             conn.close()
         return None
 
-def db_selectUserByName(name): # return tuple: (userid, pwhash)
+# select user by name, return tuple: (userid, pwhash)
+def db_selectUserByName(name):
     try:
         conn = sql.connect(DB_DIR)
         conn.execute("PRAGMA foreign_keys=ON;")
@@ -103,7 +106,8 @@ def db_selectUserByName(name): # return tuple: (userid, pwhash)
             conn.close()
         return None
 
-def db_selectContainerByUser(name): # return list: [(projectname, containerid, language, version, time)]
+# select project by user, return list: [(projectname, containerid, language, version, time)]
+def db_selectContainerByUser(name):
     try:
         userid = db_selectUserByName(name)[0]
         conn = sql.connect(DB_DIR)
@@ -124,6 +128,7 @@ def db_selectContainerByUser(name): # return list: [(projectname, containerid, l
         print('Failed to select data from sqlite table')
         return None
 
+# verify a user's name and password, True for successful, False for failed
 def db_verify_pw(name, pw):
     try:
         pw = 'NAME:'+name+'|PW:'+pw
@@ -133,7 +138,8 @@ def db_verify_pw(name, pw):
     except:
         return False
 
-def db_deleteuser(name, pw): # delete from db: True for successful, False for failed
+# delete a user, True for successful, False for failed
+def db_deleteuser(name, pw):
     try:
         if db_verify_pw(name, pw):
             container_list = db_selectContainerByUser(name)
@@ -156,6 +162,7 @@ def db_deleteuser(name, pw): # delete from db: True for successful, False for fa
             conn.close()
         return False
 
+# create a project from front-end
 @database_bp.route("/createProject/", methods=['POST'])
 def db_createProject():
     
@@ -178,6 +185,7 @@ def db_createProject():
             print(repr(e) + 'during creating project')
             return 'KerError', 400
 
+# get all projects of a user and sent to front-end
 @database_bp.route("/getAllProjects/", methods=['GET'])
 def db_getAllProjects():
     try:
@@ -203,6 +211,7 @@ def db_getAllProjects():
             print(repr(e) + 'during geting all projects')
             return 'KerError', 400
             
+# get a single project infomation
 def db_getProjectInfo(container_id):
     try:
         conn = sql.connect(DB_DIR)
@@ -221,6 +230,7 @@ def db_getProjectInfo(container_id):
         print('Failed to select data from sqlite table')
         return None
 
+# get a single project infomation adn sent to front-end
 @database_bp.route("/getProject/<container_id>", methods=['GET'])
 def db_getProject(container_id):
     res = db_getProjectInfo(container_id)
@@ -228,6 +238,7 @@ def db_getProject(container_id):
         return jsonify(res), 200
     return "failed", 500
 
+# delete a project
 @database_bp.route("/deleteProject/<container_id>", methods=['DELETE'])
 def db_deleteProject(container_id):
     try:
@@ -243,6 +254,7 @@ def db_deleteProject(container_id):
         print('Failed to select data from sqlite table')
         return "failed", 500
 
+# rename a project from front-end
 @database_bp.route("/updateProject/", methods=['POST'])
 def db_updateProject():
     try:

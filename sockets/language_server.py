@@ -5,6 +5,7 @@ import json
 from sockets import socketio
 from flask import request
 
+# This contains language-serve-related part, based on LSP
 
 def install_lsp(language, run_lsp_command):
     namespace = f'/{language}'

@@ -4,6 +4,9 @@ from functools import wraps
 
 login_bp = Blueprint("login", __name__)
 
+
+# This file contains login/logout/register-related part.
+
 def login_required(view_func):
     @wraps(view_func)
     def wrapper(*args, **kwargs):
@@ -20,18 +23,19 @@ def login():
         return 'success', 200
     return 'failed', 401
 
+# check if client is logged
 @login_bp.get('/is_logged_in/')
 @login_required
 def check_logged_in():
     return session["username"], 200
 
-
+# logout
 @login_bp.get('/logout/')
 def logout():
     session.pop('username', None)
     return 'success', 200
 
-
+# register a user
 @login_bp.route('/register/', methods=['POST', 'DELETE'])
 def register():
     body_json = request.json
